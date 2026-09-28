@@ -5,6 +5,6 @@ from .search import Retrieval
 
 from .index import Indexer
 
-query = "open ai"
-# Indexer.index()
-Retrieval.search(query, 1)
+# query = "ai"
+Indexer.index()
+# Retrieval.search(query, 1)

@@ -42,7 +42,7 @@ class Tokenizer:
 class MinimalSource(BaseModel):
     id: int
     file_path: str
-    text: str
+    # text: str
     first_character_index: int
     last_character_index: int
 

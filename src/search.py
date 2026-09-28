@@ -11,7 +11,7 @@ class Retrieval:
     @classmethod
     def search(cls, query: str, k: int) -> list[MinimalSource]:
         query_tokens = Tokenizer.tokenize(query)
-        # print(query_tokens)
+        print(query_tokens)
         result: list[MinimalSource] = []
         scores = {}
         indexed_objs: dict[str, dict[str, list | float]] = {}
