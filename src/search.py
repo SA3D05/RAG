@@ -47,6 +47,4 @@ class Retrieval:
             chunk = chunks[int(id)]
             result.append(chunk)
 
-        with open("test_result.json", "w") as f:
-            json.dump([source.model_dump() for source in result], f, indent=4)
         return result

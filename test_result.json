@@ -1,0 +1,701 @@
+[
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 59,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7953
+    }
+][
+    {
+        "id": 351,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 24500,
+        "last_character_index": 26499
+    }
+][
+    {
+        "id": 639,
+        "file_path": "data/raw/examples/online_serving/openai_embedding_long_text/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 507,
+        "file_path": "data/raw/docs/models/extensions/fastsafetensor.md",
+        "first_character_index": 0,
+        "last_character_index": 415
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 171,
+        "file_path": "data/raw/docs/features/multimodal_inputs.md",
+        "first_character_index": 12250,
+        "last_character_index": 14249
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 546,
+        "file_path": "data/raw/docs/getting_started/installation/device.template.md",
+        "first_character_index": 0,
+        "last_character_index": 203
+    }
+][
+    {
+        "id": 528,
+        "file_path": "data/raw/docs/getting_started/installation/intel_gaudi.md",
+        "first_character_index": 8750,
+        "last_character_index": 10749
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 357,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 35000,
+        "last_character_index": 36999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 522,
+        "file_path": "data/raw/docs/getting_started/installation/gpu.md",
+        "first_character_index": 1750,
+        "last_character_index": 3177
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 357,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 35000,
+        "last_character_index": 36999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 528,
+        "file_path": "data/raw/docs/getting_started/installation/intel_gaudi.md",
+        "first_character_index": 8750,
+        "last_character_index": 10749
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 115,
+        "file_path": "data/raw/docs/cli/json_tip.inc.md",
+        "first_character_index": 0,
+        "last_character_index": 386
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 171,
+        "file_path": "data/raw/docs/features/multimodal_inputs.md",
+        "first_character_index": 12250,
+        "last_character_index": 14249
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 21,
+        "file_path": "data/raw/benchmarks/README.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 59,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7953
+    }
+][
+    {
+        "id": 171,
+        "file_path": "data/raw/docs/features/multimodal_inputs.md",
+        "first_character_index": 12250,
+        "last_character_index": 14249
+    }
+][
+    {
+        "id": 480,
+        "file_path": "data/raw/docs/deployment/frameworks/helm.md",
+        "first_character_index": 5250,
+        "last_character_index": 6377
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 640,
+        "file_path": "data/raw/examples/online_serving/openai_embedding_long_text/README.md",
+        "first_character_index": 5250,
+        "last_character_index": 6506
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 115,
+        "file_path": "data/raw/docs/cli/json_tip.inc.md",
+        "first_character_index": 0,
+        "last_character_index": 386
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 345,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 14000,
+        "last_character_index": 15999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 522,
+        "file_path": "data/raw/docs/getting_started/installation/gpu.md",
+        "first_character_index": 1750,
+        "last_character_index": 3177
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 322,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 8750,
+        "last_character_index": 10749
+    }
+][
+    {
+        "id": 115,
+        "file_path": "data/raw/docs/cli/json_tip.inc.md",
+        "first_character_index": 0,
+        "last_character_index": 386
+    }
+][
+    {
+        "id": 348,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 19250,
+        "last_character_index": 21249
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 78,
+        "file_path": "data/raw/docs/usage/v1_guide.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 59,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7953
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 653,
+        "file_path": "data/raw/examples/offline_inference/openai_batch/README.md",
+        "first_character_index": 1750,
+        "last_character_index": 3749
+    }
+][
+    {
+        "id": 171,
+        "file_path": "data/raw/docs/features/multimodal_inputs.md",
+        "first_character_index": 12250,
+        "last_character_index": 14249
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 54,
+        "file_path": "data/raw/benchmarks/auto_tune/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7429
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 59,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7953
+    }
+][
+    {
+        "id": 358,
+        "file_path": "data/raw/docs/models/supported_models.md",
+        "first_character_index": 36750,
+        "last_character_index": 38749
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 78,
+        "file_path": "data/raw/docs/usage/v1_guide.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 645,
+        "file_path": "data/raw/examples/others/lmcache/README.md",
+        "first_character_index": 1750,
+        "last_character_index": 2038
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 115,
+        "file_path": "data/raw/docs/cli/json_tip.inc.md",
+        "first_character_index": 0,
+        "last_character_index": 386
+    }
+][
+    {
+        "id": 321,
+        "file_path": "data/raw/docs/design/fused_moe_modular_kernel.md",
+        "first_character_index": 7000,
+        "last_character_index": 8999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 150,
+        "file_path": "data/raw/docs/features/structured_outputs.md",
+        "first_character_index": 1750,
+        "last_character_index": 3749
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 629,
+        "file_path": "data/raw/examples/others/logging_configuration.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 73,
+        "file_path": "data/raw/docs/usage/troubleshooting.md",
+        "first_character_index": 15750,
+        "last_character_index": 16070
+    }
+][
+    {
+        "id": 535,
+        "file_path": "data/raw/docs/getting_started/installation/intel_gaudi.md",
+        "first_character_index": 21000,
+        "last_character_index": 22999
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 80,
+        "file_path": "data/raw/docs/usage/v1_guide.md",
+        "first_character_index": 10500,
+        "last_character_index": 10861
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 602,
+        "file_path": "data/raw/docs/features/quantization/supported_hardware.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 645,
+        "file_path": "data/raw/examples/others/lmcache/README.md",
+        "first_character_index": 1750,
+        "last_character_index": 2038
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+][
+    {
+        "id": 54,
+        "file_path": "data/raw/benchmarks/auto_tune/README.md",
+        "first_character_index": 7000,
+        "last_character_index": 7429
+    }
+][
+    {
+        "id": 87,
+        "file_path": "data/raw/docs/usage/usage_stats.md",
+        "first_character_index": 1750,
+        "last_character_index": 2185
+    }
+][
+    {
+        "id": 505,
+        "file_path": "data/raw/docs/models/hardware_supported_models/tpu.md",
+        "first_character_index": 0,
+        "last_character_index": 1999
+    }
+][
+    {
+        "id": 57,
+        "file_path": "data/raw/benchmarks/kernels/deepgemm/README.md",
+        "first_character_index": 3500,
+        "last_character_index": 5499
+    }
+]

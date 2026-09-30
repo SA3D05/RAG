@@ -1,20 +1,18 @@
 import json
 
-with open("README.md") as f:
-    content = f.read()
+with open("test_result.json", "r") as f:
+    results = json.load(f)
 
 
-with open("data/processed/chunks.json") as f:
-    data = json.loads(f.read())
-
-
-for d in data:
-    print(
-        f"{content[d['first_character_index'] : d['last_character_index'] + 1]!r}"
-    )
-
-
-
-'*This project has been cr'
-'een created as part of th'
-'um by satifi*\n# RAG
+with open("result.md", "a") as out_file:
+    for chunk in results:
+        with open(chunk["file_path"]) as in_file:
+            data = in_file.read()
+            # Standard Python slicing: data[start:end] already extracts up to end
+            out_file.write(
+                data[
+                    chunk["first_character_index"] : chunk[
+                        "last_character_index"
+                    ]
+                ]
+            )

@@ -18,21 +18,41 @@ class Indexer:
         chunks = cls.__chunk(max_chunk_size, overlap_size)
         # pprint(chunks)
         # pprint(chunks)
-        # index_objs: dict[str, dict] = {}
+        index_objs: dict[str, dict] = {}
 
+        # {
+        #     "id": 0,
+        #     "file_path": "data/raw/README.md",
+        #     "first_character_index": 0,
+        #     "last_character_index": 1999,
+        # },
         # # store TF in (chunk_id, TF)
-        # for chunk in chunks:
-        #     for token in Tokenizer.tokenize(chunk["text"]):
-        #         index_objs.setdefault(token, {"TF": []})["TF"].append(
-        #             f'{chunk["id"]},{chunk["text"].count(token)}'
-        #         )
-        # chunks_len = len(chunks)
+        current_path = ""
+        file_content = ""
+        chunk_content = ""
+        for chunk in chunks:
+            if current_path != chunk.file_path:
+                current_path = chunk.file_path
+                with open(chunk.file_path) as f:
+                    file_content = f.read()
 
-        # for token, value in index_objs.items():
-        #     value["IDF"] = math.log(chunks_len / len(value["TF"]))
+            chunk_content = file_content[
+                chunk.first_character_index : chunk.last_character_index + 1
+            ]
 
-        # with open("data/processed/index.json", "w") as f:
-        #     json.dump(index_objs, f)
+            for token in Tokenizer.tokenize(chunk_content):
+
+                index_objs.setdefault(token, {"TF": []})["TF"].append(
+                    f"{chunk.id},{chunk_content.count(token)}"
+                )
+
+        chunks_len = len(chunks)
+
+        for token, value in index_objs.items():
+            value["IDF"] = math.log(chunks_len / len(value["TF"]))
+
+        with open("data/processed/index.json", "w") as f:
+            json.dump(index_objs, f)
 
         with open("data/processed/chunks.json", "w") as f:
             json.dump([chunk.model_dump() for chunk in chunks], f, indent=4)
