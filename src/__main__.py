@@ -1,7 +1,4 @@
-import json
-from pathlib import Path
-from pprint import pprint
-import sys
+from fire import Fire
 from .search import Retrieval
 from .index import Indexer
 from .models import (
@@ -11,45 +8,46 @@ from .models import (
     MinimalSearchResults,
 )
 
-datasets_path = Path("data/datasets_public/public")
 
-datasets: list[RagDataset] = []
-for unanswered in datasets_path.rglob("UnansweredQuestions/*.json"):
-    with open(unanswered) as f:
-        datasets.append(RagDataset.model_validate_json(f.read()))
+class Rag:
 
-# for dataset in datasets:
-questions = datasets[-1].rag_questions
+    def index(self, max_chunk_size=2000):
+        Indexer.index(max_chunk_size)
 
-k_value = 2
-results: StudentSearchResults = StudentSearchResults(
-    search_results=[], k=k_value
-)
+    def search(self, query: str, k: int):
+        return [
+            result.model_dump_json() for result in Retrieval.search(query, k)
+        ]
 
-for quest in questions:
+    def search_dataset(self, dataset_path: str, k: int, save_directory: str):
 
-    if not isinstance(quest, UnansweredQuestion):
-        continue
-
-    res = Retrieval.search(quest.question, k_value)
-    # with open("test_result.json", "a") as f:
-    #     json.dump([source.model_dump() for source in res], f, indent=4)
-    results.search_results.append(
-        MinimalSearchResults(
-            question_id=quest.question_id,
-            question=quest.question,
-            retrieved_sources=res,
+        print(f"{dataset_path!r}")
+        with open(dataset_path) as f:
+            questions = RagDataset.model_validate_json(f.read()).rag_questions
+        results: StudentSearchResults = StudentSearchResults(
+            search_results=[], k=k
         )
-    )
 
-with open(
-    "data/output/search_results/UnansweredQuestions/dataset_docs_public.json",
-    "w",
-) as f:
-    f.write(results.model_dump_json(indent=4))
+        for quest in questions:
 
-# for answeredin datasets_path.rglob("AnsweredQuestions/*.json" ):
-#     pass
+            if not isinstance(quest, UnansweredQuestion):
+                continue
 
-# query = "openai"
-# Indexer.index()
+            res = Retrieval.search(quest.question, k)
+            results.search_results.append(
+                MinimalSearchResults(
+                    question_id=quest.question_id,
+                    question=quest.question,
+                    retrieved_sources=res,
+                )
+            )
+
+        with open(
+            save_directory + "/dataset_docs_public.json",
+            "w",
+        ) as f:
+            f.write(results.model_dump_json(indent=4))
+
+
+if __name__ == "__main__":
+    Fire(Rag)

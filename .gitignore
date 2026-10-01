@@ -1,4 +1,9 @@
+en.subject.pdf
 __pycache__
 .venv
 data/raw/*
 data/processed/*
+data/output/*
+test.py
+test_result.json
+result.md

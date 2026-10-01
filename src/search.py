@@ -40,7 +40,7 @@ class Retrieval:
             for chunk_id, tf in tfs.items():
                 scores[chunk_id] = scores.get(chunk_id, 0) + tf * idf
         top_relevant_ids: list = sorted(
-            scores.keys(), key=lambda id: scores[id]
+            scores.keys(), key=lambda id: scores[id], reverse=True
         )[:k]
         for id in top_relevant_ids:
 

@@ -1,35 +1,25 @@
 import json
 import math
 from pprint import pprint
-import sys
-from langchain_text_splitters import MarkdownHeaderTextSplitter
 from pathlib import Path
-
 from .models import MinimalSource, Tokenizer
+from langchain_text_splitters import MarkdownTextSplitter
 
 
 class Indexer:
 
     @classmethod
     def index(
-        cls, max_chunk_size: int = 2000, overlap_size: int = 250
+        cls, max_chunk_size: int = 2000, overlap_size: int = 150
     ) -> None:
-        # chunks = cls.__get_chunks(max_chunk_size)
         chunks = cls.__chunk(max_chunk_size, overlap_size)
-        # pprint(chunks)
-        # pprint(chunks)
+
         index_objs: dict[str, dict] = {}
 
-        # {
-        #     "id": 0,
-        #     "file_path": "data/raw/README.md",
-        #     "first_character_index": 0,
-        #     "last_character_index": 1999,
-        # },
-        # # store TF in (chunk_id, TF)
         current_path = ""
         file_content = ""
         chunk_content = ""
+
         for chunk in chunks:
             if current_path != chunk.file_path:
                 current_path = chunk.file_path
@@ -38,7 +28,7 @@ class Indexer:
 
             chunk_content = file_content[
                 chunk.first_character_index : chunk.last_character_index + 1
-            ]
+            ].lower()
 
             for token in Tokenizer.tokenize(chunk_content):
 
@@ -52,14 +42,14 @@ class Indexer:
             value["IDF"] = math.log(chunks_len / len(value["TF"]))
 
         with open("data/processed/index.json", "w") as f:
-            json.dump(index_objs, f)
+            json.dump(index_objs, f, indent=4)
 
         with open("data/processed/chunks.json", "w") as f:
             json.dump([chunk.model_dump() for chunk in chunks], f, indent=4)
 
     @classmethod
     def __chunk(cls, max_chunk_size: int, overlap_size: int):
-        base_path = Path("data/raw")
+        base_path = Path("data/raw/vllm-0.10.1")
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0

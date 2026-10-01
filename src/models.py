@@ -8,34 +8,74 @@ class Tokenizer:
 
     @staticmethod
     def tokenize(text: str) -> set[str]:
-        """Placeholder method for demonstrait tokenizing"""
+        """Tokenize Markdown text for RAG indexing."""
+
         if not text:
             return set()
 
-        # [\W_]+ ahmed suggestion
         text = text.lower()
-        # 1. Strip code block backticks, inline backticks, and HTML tags
-        text = re.sub(r"```.*?```", " ", text, flags=re.DOTALL)
-        text = re.sub(r"`.*?`", " ", text)
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+
+        text = re.sub(r"```(?:[a-zA-Z0-9_+-]+)?\n?", " ", text)
+        text = text.replace("```", " ")
+
+        text = text.replace("`", " ")
+
+        text = re.sub(
+            r"\[([^\]]+)\]\([^)]+\)",
+            r"\1",
+            text,
+        )
+
+        text = re.sub(
+            r"\[([^\]]+)\]\[[^\]]*\]",
+            r"\1",
+            text,
+        )
+
+        text = re.sub(
+            r"(?:https?://|www\.)\S+",
+            " ",
+            text,
+            flags=re.IGNORECASE,
+        )
+
         text = re.sub(r"<[^>]+>", " ", text)
 
-        # 2. Strip URLs and markdown link syntax [text](url) -> keep 'text'
-        text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-        text = re.sub(r"https?://\S+|www\.\S+", " ", text)
+        text = re.sub(
+            r"([a-z])([A-Z])",
+            r"\1 \2",
+            text,
+        )
 
-        # 3. Strip headers (#), bold/italic (*, _), blockquotes (>), list markers
-        text = re.sub(r"[#*_~>`\-+=|]", " ", text)
+        text = re.sub(
+            r"([A-Z]+)([A-Z][a-z])",
+            r"\1 \2",
+            text,
+        )
 
-        # 4. Split camelCase/PascalCase identifiers into separate terms
-        # e.g., 'AsyncLLMEngine' -> 'Async LLM Engine'
-        text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
-        text = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", text)
+        text = re.sub(r"[_\-./\\]+", " ", text)
 
-        # 5. Extract words and code identifiers, stripping snake_case/punctuation
-        # Matches alphanumeric sequences of length >= 2
-        raw_tokens: list[str] = re.findall(r"[a-zA-Z0-9]+", text.lower())
+        text = re.sub(r"[+#]", " ", text)
 
-        # Filter out single characters or standalone pure digits if desired
+        text = re.sub(
+            r"[#*_~>|=]+",
+            " ",
+            text,
+        )
+
+        text = re.sub(
+            r"[^\w\s]",
+            " ",
+            text,
+            flags=re.UNICODE,
+        )
+
+        raw_tokens = re.findall(
+            r"\b[a-z0-9]+\b",
+            text,
+        )
+
         return {token for token in raw_tokens if len(token) > 1}
 
 
