@@ -1,21 +1,21 @@
 import json
 import math
-from pprint import pprint
 from pathlib import Path
+from pprint import pprint
 from .models import MinimalSource, Tokenizer
-from langchain_text_splitters import MarkdownTextSplitter
+from collections import Counter
 
 
 class Indexer:
 
     @classmethod
     def index(
-        cls, max_chunk_size: int = 2000, overlap_size: int = 150
+        cls, max_chunk_size: int = 2000, overlap_size: int = 100
     ) -> None:
         chunks = cls.__chunk(max_chunk_size, overlap_size)
 
-        index_objs: dict[str, dict] = {}
-
+        tfs: dict[str, dict] = {}
+        idfs = {}
         current_path = ""
         file_content = ""
         chunk_content = ""
@@ -29,20 +29,24 @@ class Indexer:
             chunk_content = file_content[
                 chunk.first_character_index : chunk.last_character_index + 1
             ].lower()
+            tokens = Tokenizer.tokenize(chunk_content)
 
-            for token in Tokenizer.tokenize(chunk_content):
+            tf_counts = Counter(tokens)
 
-                index_objs.setdefault(token, {"TF": []})["TF"].append(
-                    f"{chunk.id},{chunk_content.count(token)}"
-                )
-
+            for token, count in tf_counts.items():
+                if token not in tfs:
+                    tfs[token] = {}
+                tfs[token][chunk.id] = count
         chunks_len = len(chunks)
 
-        for token, value in index_objs.items():
-            value["IDF"] = math.log(chunks_len / len(value["TF"]))
+        for token in tfs:
+            idfs[token] = math.log(chunks_len / len(tfs[token]))
 
-        with open("data/processed/index.json", "w") as f:
-            json.dump(index_objs, f, indent=4)
+        with open("data/processed/tf.json", "w") as f:
+            json.dump(tfs, f, indent=4)
+
+        with open("data/processed/idf.json", "w") as f:
+            json.dump(idfs, f, indent=4)
 
         with open("data/processed/chunks.json", "w") as f:
             json.dump([chunk.model_dump() for chunk in chunks], f, indent=4)
@@ -55,6 +59,7 @@ class Indexer:
         start_idx = 0
         end_idx = 0
         id = 0
+
         for path in base_path.rglob("*.md"):
             with open(path) as f:
                 content = f.read()
@@ -74,5 +79,4 @@ class Indexer:
                     )
                     start_idx += max_chunk_size - overlap_size
                     id += 1
-
         return chunks_objs

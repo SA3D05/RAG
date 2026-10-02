@@ -1,3 +1,5 @@
+import sys
+
 from pydantic import BaseModel, Field
 from typing import List
 import uuid
@@ -6,77 +8,55 @@ import re
 
 class Tokenizer:
 
-    @staticmethod
-    def tokenize(text: str) -> set[str]:
-        """Tokenize Markdown text for RAG indexing."""
+    TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
 
+    STOPWORDS = {
+        "a",
+        "you",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "has",
+        "he",
+        "in",
+        "is",
+        "it",
+        "its",
+        "of",
+        "on",
+        "that",
+        "the",
+        "to",
+        "was",
+        "were",
+        "will",
+        "with",
+    }
+
+    @classmethod
+    def tokenize(cls, text: str) -> List[str]:
+        """Tokenize text for BM25 indexing, preserving term frequency."""
         if not text:
-            return set()
+            return []
 
-        text = text.lower()
-        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        tokens: List[str] = []
 
-        text = re.sub(r"```(?:[a-zA-Z0-9_+-]+)?\n?", " ", text)
-        text = text.replace("```", " ")
+        # Find all clean words, stripping punctuation, markdown markers, parens
+        for match in cls.TOKEN_PATTERN.finditer(text.lower()):
+            word = match.group(0)
 
-        text = text.replace("`", " ")
+            # Strip leading/trailing dashes or underscores
+            word = word.strip("-_")
 
-        text = re.sub(
-            r"\[([^\]]+)\]\([^)]+\)",
-            r"\1",
-            text,
-        )
-
-        text = re.sub(
-            r"\[([^\]]+)\]\[[^\]]*\]",
-            r"\1",
-            text,
-        )
-
-        text = re.sub(
-            r"(?:https?://|www\.)\S+",
-            " ",
-            text,
-            flags=re.IGNORECASE,
-        )
-
-        text = re.sub(r"<[^>]+>", " ", text)
-
-        text = re.sub(
-            r"([a-z])([A-Z])",
-            r"\1 \2",
-            text,
-        )
-
-        text = re.sub(
-            r"([A-Z]+)([A-Z][a-z])",
-            r"\1 \2",
-            text,
-        )
-
-        text = re.sub(r"[_\-./\\]+", " ", text)
-
-        text = re.sub(r"[+#]", " ", text)
-
-        text = re.sub(
-            r"[#*_~>|=]+",
-            " ",
-            text,
-        )
-
-        text = re.sub(
-            r"[^\w\s]",
-            " ",
-            text,
-            flags=re.UNICODE,
-        )
-
-        raw_tokens = re.findall(
-            r"\b[a-z0-9]+\b",
-            text,
-        )
-
-        return {token for token in raw_tokens if len(token) > 1}
+            if len(word) > 1 and word not in cls.STOPWORDS:
+                tokens.append(word)
+        return tokens
 
 
 class MinimalSource(BaseModel):

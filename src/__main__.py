@@ -21,7 +21,6 @@ class Rag:
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
 
-        print(f"{dataset_path!r}")
         with open(dataset_path) as f:
             questions = RagDataset.model_validate_json(f.read()).rag_questions
         results: StudentSearchResults = StudentSearchResults(
