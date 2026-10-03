@@ -23,6 +23,10 @@ class Retrieval:
 
         with open("data/processed/idf.json") as f:
             idfs = json.load(f)
+
+        avgdl = 0
+        with open("data/processed/avgdl.json") as f:
+            avgdl = json.load(f)["avgdl"]
         # pprint(indexed_objs)
 
         for token in query_tokens:
@@ -32,8 +36,14 @@ class Retrieval:
             tf = tfs[token]
             idf = idfs[token]
 
-            for chunk_id, value in tf.items():
-                scores[chunk_id] = scores.get(chunk_id, 0) + (idf * value)
+            for chunk_id, tf_value in tf.items():
+                scores[chunk_id] = scores.get(chunk_id, 0) + cls.__score_chunk(
+                    tf_value,
+                    idf,
+                    chunks[int(chunk_id)].tokens_len,
+                    avgdl,
+                    "bm25",
+                )
 
         top_relevant_ids: list = sorted(
             scores.keys(), key=lambda id: scores[id], reverse=True
@@ -44,3 +54,22 @@ class Retrieval:
             result.append(chunk)
 
         return result
+
+    @classmethod
+    def __score_chunk(
+        cls,
+        tf: int,
+        idf: float,
+        doc_len: int,
+        avgdl: float,
+        method: str = "bm25",
+    ) -> float:
+        if method == "tfidf":
+            return tf * idf
+
+        # Default to BM25
+        k1 = 1.5
+        b = 0.75
+        numerator = tf * (k1 + 1.0)
+        denominator = tf + k1 * (1.0 - b + b * (doc_len / avgdl))
+        return idf * (numerator / denominator)

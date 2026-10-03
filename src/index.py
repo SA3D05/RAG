@@ -10,7 +10,7 @@ class Indexer:
 
     @classmethod
     def index(
-        cls, max_chunk_size: int = 2000, overlap_size: int = 100
+        cls, max_chunk_size: int = 2000, overlap_size: int = 300
     ) -> None:
         chunks = cls.__chunk(max_chunk_size, overlap_size)
 
@@ -19,6 +19,7 @@ class Indexer:
         current_path = ""
         file_content = ""
         chunk_content = ""
+        tokens_count = 0
 
         for chunk in chunks:
             if current_path != chunk.file_path:
@@ -30,17 +31,20 @@ class Indexer:
                 chunk.first_character_index : chunk.last_character_index + 1
             ].lower()
             tokens = Tokenizer.tokenize(chunk_content)
-
+            chunk.tokens_len = len(tokens)
             tf_counts = Counter(tokens)
-
+            tokens_count += len(tokens)
             for token, count in tf_counts.items():
                 if token not in tfs:
                     tfs[token] = {}
                 tfs[token][chunk.id] = count
         chunks_len = len(chunks)
-
+        avgdl = tokens_count / chunks_len
         for token in tfs:
             idfs[token] = math.log(chunks_len / len(tfs[token]))
+
+        with open("data/processed/avgdl.json", "w") as f:
+            json.dump({"avgdl": avgdl}, f, indent=4)
 
         with open("data/processed/tf.json", "w") as f:
             json.dump(tfs, f, indent=4)
@@ -75,6 +79,7 @@ class Indexer:
                             file_path=str(path),
                             first_character_index=start_idx,
                             last_character_index=end_idx,
+                            tokens_len=0,
                         )
                     )
                     start_idx += max_chunk_size - overlap_size

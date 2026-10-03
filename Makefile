@@ -4,7 +4,8 @@ all: index search grade
 
 
 index:
-	uv run python -m src index -max_chunk_size 2000 2>dev.log
+	uv run python -m src index -max_chunk_size 2000 
+#	2>dev.log
 
 search:
 	uv run python -m src \

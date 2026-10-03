@@ -64,6 +64,7 @@ class MinimalSource(BaseModel):
     file_path: str
     first_character_index: int
     last_character_index: int
+    tokens_len: int
 
 
 class UnansweredQuestion(BaseModel):
