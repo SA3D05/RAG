@@ -1,53 +1,135 @@
 import json
 from pydantic import TypeAdapter
+from .enums import PathInfo, DocumentType
 from .models import MinimalSource, Tokenizer
 
 
 class Retrieval:
 
     @classmethod
-    def search(cls, query: str, k: int) -> list[MinimalSource]:
+    def search(
+        cls, query: str, k: int, query_type: DocumentType
+    ) -> list[MinimalSource]:
         query_tokens = Tokenizer.tokenize(query)
-        # print(query_tokens)
-        result: list[MinimalSource] = []
+
+        if query_type == DocumentType.DOCS:
+            result = cls.__search_docs(query_tokens, k)
+            return result
+
+        result = cls.__search_code(query_tokens, k)
+        return result
+
+    @classmethod
+    def __search_docs(
+        cls, query_tokens: list[str], k: int
+    ) -> list[MinimalSource]:
         scores = {}
-        idfs: dict = {}
-        tfs: dict = {}
+        result: list[MinimalSource] = []
+        AVGDL = 0
+        IDF: dict[str, float] = {}
+        TF: dict[str, dict[str, int]] = {}
 
         chunks: list[MinimalSource] = []
-        with open("data/processed/chunks.json") as f:
+
+        with open(PathInfo.DOCS_CHUNKS.value) as f:
             chunks = TypeAdapter(list[MinimalSource]).validate_json(f.read())
 
-        with open("data/processed/tf.json") as f:
-            tfs = json.load(f)
+        with open(PathInfo.DOCS_TF.value) as f:
+            TF = json.load(f)
 
-        with open("data/processed/idf.json") as f:
-            idfs = json.load(f)
+        with open(PathInfo.DOCS_IDF.value) as f:
+            IDF = json.load(f)
 
-        avgdl = 0
-        with open("data/processed/avgdl.json") as f:
-            avgdl = json.load(f)["avgdl"]
-        # pprint(indexed_objs)
+        with open(PathInfo.DOCS_AVGDL.value) as f:
+            AVGDL = json.load(f)["avgdl"]
 
         for token in query_tokens:
-            if idfs.get(token) is None:
+
+            if token not in IDF:  # skip unknown tokens in query
                 continue
 
-            tf = tfs[token]
-            idf = idfs[token]
+            token_frequency = TF[token]
+            inverse_document_frequency = IDF[token]
 
-            for chunk_id, tf_value in tf.items():
-                scores[chunk_id] = scores.get(chunk_id, 0) + cls.__score_chunk(
+            for chunk_id, tf_value in token_frequency.items():
+
+                chunk_score = cls.__score_chunk(
                     tf_value,
-                    idf,
+                    inverse_document_frequency,
                     chunks[int(chunk_id)].tokens_len,
-                    avgdl,
-                    "bm25",
+                    AVGDL,
                 )
 
-        top_relevant_ids: list = sorted(
+                current_score = 0
+
+                if chunk_id in scores:  # safe check the key
+                    current_score = scores[chunk_id]
+
+                scores[chunk_id] = current_score + chunk_score
+
+        top_relevant_ids = sorted(
             scores.keys(), key=lambda id: scores[id], reverse=True
         )[:k]
+
+        for id in top_relevant_ids:
+
+            chunk = chunks[int(id)]
+            result.append(chunk)
+
+        return result
+
+    @classmethod
+    def __search_code(
+        cls, query_tokens: list[str], k: int
+    ) -> list[MinimalSource]:
+        scores = {}
+        result: list[MinimalSource] = []
+        AVGDL = 0
+        IDF: dict[str, float] = {}
+        TF: dict[str, dict[str, int]] = {}
+
+        chunks: list[MinimalSource] = []
+
+        with open(PathInfo.CODE_CHUNKS.value) as f:
+            chunks = TypeAdapter(list[MinimalSource]).validate_json(f.read())
+
+        with open(PathInfo.CODE_TF.value) as f:
+            TF = json.load(f)
+
+        with open(PathInfo.CODE_IDF.value) as f:
+            IDF = json.load(f)
+
+        with open(PathInfo.CODE_AVGDL.value) as f:
+            AVGDL = json.load(f)["avgdl"]
+
+        for token in query_tokens:
+
+            if token not in IDF:  # skip unknown tokens in query
+                continue
+
+            token_frequency = TF[token]
+            inverse_document_frequency = IDF[token]
+
+            for chunk_id, tf_value in token_frequency.items():
+
+                chunk_score = cls.__score_chunk(
+                    tf_value,
+                    inverse_document_frequency,
+                    chunks[int(chunk_id)].tokens_len,
+                    AVGDL,
+                )
+
+                current_score = 0
+
+                if chunk_id in scores:  # safe check the key
+                    current_score = scores[chunk_id]
+
+                scores[chunk_id] = current_score + chunk_score
+
+        top_relevant_ids = sorted(
+            scores.keys(), key=lambda id: scores[id], reverse=True
+        )[:k]
+
         for id in top_relevant_ids:
 
             chunk = chunks[int(id)]
@@ -62,14 +144,11 @@ class Retrieval:
         idf: float,
         doc_len: int,
         avgdl: float,
-        method: str = "bm25",
     ) -> float:
-        if method == "tfidf":
-            return tf * idf
-
-        # Default to BM25
         k1 = 1.5
         b = 0.75
+
         numerator = tf * (k1 + 1.0)
         denominator = tf + k1 * (1.0 - b + b * (doc_len / avgdl))
+
         return idf * (numerator / denominator)

@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from fire import Fire
+from tqdm import tqdm
+
+from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
 from .models import (
@@ -16,33 +21,47 @@ class Rag:
 
     def search(self, query: str, k: int):
         return [
-            result.model_dump_json() for result in Retrieval.search(query, k)
+            result.model_dump_json()
+            for result in Retrieval.search(query, k, DocumentType.DOCS)
         ]
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
+        file_path = Path(dataset_path)
 
-        with open(dataset_path) as f:
+        with open(file_path) as f:
             questions = RagDataset.model_validate_json(f.read()).rag_questions
+
         results: StudentSearchResults = StudentSearchResults(
             search_results=[], k=k
         )
+        print("retriving ...")
+        with tqdm(total=len(questions)) as pbar:
+            for quest in questions:
+                pbar.update(1)
 
-        for quest in questions:
+                if not isinstance(quest, UnansweredQuestion):
+                    continue
 
-            if not isinstance(quest, UnansweredQuestion):
-                continue
+                if "docs" in file_path.name:
+                    res = Retrieval.search(
+                        quest.question, k, DocumentType.DOCS
+                    )
 
-            res = Retrieval.search(quest.question, k)
-            results.search_results.append(
-                MinimalSearchResults(
-                    question_id=quest.question_id,
-                    question=quest.question,
-                    retrieved_sources=res,
+                else:
+                    res = Retrieval.search(
+                        quest.question, k, DocumentType.CODE
+                    )
+
+                results.search_results.append(
+                    MinimalSearchResults(
+                        question_id=quest.question_id,
+                        question=quest.question,
+                        retrieved_sources=res,
+                    )
                 )
-            )
 
         with open(
-            save_directory + "/dataset_docs_public.json",
+            save_directory + "/dataset_public.json",
             "w",
         ) as f:
             f.write(results.model_dump_json(indent=4))
