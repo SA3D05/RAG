@@ -1,7 +1,7 @@
 import json
 from pydantic import TypeAdapter
 from .enums import PathInfo, DocumentType
-from .models import MinimalSource, Tokenizer
+from .models import MinimalSource, Tokenizer, tokenize_python_code
 
 
 class Retrieval:
@@ -10,12 +10,13 @@ class Retrieval:
     def search(
         cls, query: str, k: int, query_type: DocumentType
     ) -> list[MinimalSource]:
-        query_tokens = Tokenizer.tokenize(query)
 
         if query_type == DocumentType.DOCS:
+            query_tokens = Tokenizer.tokenize(query)
             result = cls.__search_docs(query_tokens, k)
             return result
 
+        query_tokens = tokenize_python_code(query)
         result = cls.__search_code(query_tokens, k)
         return result
 

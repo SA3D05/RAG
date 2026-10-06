@@ -1,6 +1,6 @@
 
 
-INPUT_FILE = dataset_docs_public.json
+INPUT_FILE = dataset_code_public.json
 OUTPUT_FILE = dataset_public.json
 CHUNK_SIZE = 2000
 TOP_K = 10

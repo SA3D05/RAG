@@ -3,4 +3,10 @@ name = "rag"
 version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["pydantic", "fire", "tqdm"]
+dependencies = [
+    "pydantic",
+    "fire",
+    "tqdm",
+    "tree-sitter",
+    "tree-sitter-python",
+]

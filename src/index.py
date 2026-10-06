@@ -4,8 +4,10 @@ import math
 from tqdm import tqdm
 from .enums import DocumentType, PathInfo
 
-from .models import MinimalSource, Tokenizer
+from .models import MinimalSource, Tokenizer, tokenize_python_code
 from collections import Counter
+from tree_sitter import Language, Parser
+import tree_sitter_python
 
 
 class Indexer:
@@ -14,13 +16,23 @@ class Indexer:
     def index(cls, max_chunk_size: int) -> None:
 
         print("chunking ...")
-        docs_chunks = cls.__chunk_docs(max_chunk_size, 300)
-        code_chunks = cls.__chunk_code(max_chunk_size)
+        code_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.py")]
+        docs_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.md")]
+
+        with tqdm(total=len(code_paths) + len(docs_paths)) as pbar:
+            docs_chunks = cls.__chunk_docs(
+                max_chunk_size, 300, docs_paths, pbar
+            )
+            code_chunks = cls.__chunk_code(max_chunk_size, code_paths, pbar)
 
         print("indexing ...")
         with tqdm(total=len(code_chunks) + len(docs_chunks)) as pbar:
-            docs_index = cls.__get_chunks_index(docs_chunks, pbar)
-            code_index = cls.__get_chunks_index(code_chunks, pbar)
+            docs_index = cls.__get_chunks_index(
+                docs_chunks, DocumentType.DOCS, pbar
+            )
+            code_index = cls.__get_chunks_index(
+                code_chunks, DocumentType.CODE, pbar
+            )
 
         print("saving ...")
         with tqdm(total=8) as pbar:
@@ -28,8 +40,9 @@ class Indexer:
             cls.__save_index(code_chunks, code_index, DocumentType.CODE, pbar)
 
     @classmethod
-    def __get_chunks_index(cls, chunks: list[MinimalSource], pbar) -> dict:
-
+    def __get_chunks_index(
+        cls, chunks: list[MinimalSource], document_type: DocumentType, pbar
+    ) -> dict:
         tf: dict[str, dict[int, int]] = {}
         idf = {}
 
@@ -48,8 +61,13 @@ class Indexer:
             chunk_content = file_content[
                 chunk.first_character_index : chunk.last_character_index + 1
             ]
+            if document_type == DocumentType.DOCS:
+                tokens = Tokenizer.tokenize(chunk_content)
+            else:
+                tokens = tokenize_python_code(
+                    chunk_content + " " + current_path
+                )
 
-            tokens = Tokenizer.tokenize(chunk_content)
             chunk.tokens_len = len(tokens)
             tokens_frequency = Counter(tokens)
             total_tokens_count += len(tokens)
@@ -111,15 +129,14 @@ class Indexer:
         pbar.update(1)
 
     @classmethod
-    def __chunk_docs(cls, max_chunk_size: int, overlap_size: int):
-        raw_data_path = PathInfo.RAW_DATA.value
+    def __chunk_docs(cls, max_chunk_size: int, overlap_size: int, paths, pbar):
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
         end_idx = 0
         id = 0
 
-        for path in raw_data_path.rglob("*.md"):
+        for path in paths:
             with open(path) as f:
                 content = f.read()
                 content_len = len(content)
@@ -139,36 +156,46 @@ class Indexer:
                     )
                     start_idx += max_chunk_size - overlap_size
                     id += 1
+            pbar.update(1)
         return chunks_objs
 
     @classmethod
-    def __chunk_code(cls, max_chunk_size: int):
-        raw_data_path = PathInfo.RAW_DATA.value
+    def __chunk_code(cls, max_chunk_size: int, paths, pbar):
         chunks_objs: list[MinimalSource] = []
-
-        start_idx = 0
-        end_idx = 0
+        PY_LANGUAGE = Language(tree_sitter_python.language())
+        parser = Parser(PY_LANGUAGE)
         id = 0
-        overlap_size = 300  # just for test
-        for path in raw_data_path.rglob("*.py"):
+        for path in paths:
             with open(path) as f:
                 content = f.read()
-                content_len = len(content)
-                start_idx = 0
-                end_idx = 0
-                while start_idx <= content_len:
+                tree = parser.parse(content.encode())
+                for chunk in tree.root_node.children:
+                    a, b = chunk.byte_range
+                    buffer = b - a
 
-                    end_idx = min(start_idx + max_chunk_size, content_len) - 1
+                    while buffer > max_chunk_size:
+
+                        chunks_objs.append(
+                            MinimalSource(
+                                id=id,
+                                file_path=str(path),
+                                first_character_index=a,
+                                last_character_index=a + 2000,
+                                tokens_len=0,
+                            )
+                        )
+                        a += 2000
+                        buffer -= 2000
+                        id += 1
                     chunks_objs.append(
                         MinimalSource(
                             id=id,
                             file_path=str(path),
-                            first_character_index=start_idx,
-                            last_character_index=end_idx,
+                            first_character_index=a,
+                            last_character_index=b,
                             tokens_len=0,
                         )
                     )
-                    start_idx += max_chunk_size - overlap_size
                     id += 1
-
+            pbar.update(1)
         return chunks_objs
