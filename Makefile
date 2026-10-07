@@ -26,7 +26,8 @@ grade:
 		data/datasets/AnsweredQuestions/$(INPUT_FILE) \
 		--k $(TOP_K) 
 test:
-	@ uv run python3 src/test.py 
+	@ uv run python -m src \
+	test
 
 
 clean:

@@ -1,3 +1,4 @@
+import ast
 import json
 import math
 
@@ -19,11 +20,10 @@ class Indexer:
         code_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.py")]
         docs_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.md")]
 
-        with tqdm(total=len(code_paths) + len(docs_paths)) as pbar:
-            docs_chunks = cls.__chunk_docs(
-                max_chunk_size, 300, docs_paths, pbar
+        with tqdm(total=len(docs_paths) + len(code_paths)) as pbar:
+            code_chunks, docs_chunks = cls.__chunk(
+                max_chunk_size, docs_paths + code_paths, pbar
             )
-            code_chunks = cls.__chunk_code(max_chunk_size, code_paths, pbar)
 
         print("indexing ...")
         with tqdm(total=len(code_chunks) + len(docs_chunks)) as pbar:
@@ -129,73 +129,99 @@ class Indexer:
         pbar.update(1)
 
     @classmethod
-    def __chunk_docs(cls, max_chunk_size: int, overlap_size: int, paths, pbar):
+    def __chunk_docs(
+        cls, content, path, max_chunk_size: int, overlap_size: int, id
+    ):
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
         end_idx = 0
-        id = 0
+        content_len = len(content)
+        start_idx = 0
+        end_idx = 0
+        while start_idx <= content_len:
 
-        for path in paths:
-            with open(path) as f:
-                content = f.read()
-                content_len = len(content)
-                start_idx = 0
-                end_idx = 0
-                while start_idx <= content_len:
-
-                    end_idx = min(start_idx + max_chunk_size, content_len) - 1
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id,
-                            file_path=str(path),
-                            first_character_index=start_idx,
-                            last_character_index=end_idx,
-                            tokens_len=0,
-                        )
-                    )
-                    start_idx += max_chunk_size - overlap_size
-                    id += 1
-            pbar.update(1)
+            end_idx = min(start_idx + max_chunk_size, content_len) - 1
+            chunks_objs.append(
+                MinimalSource(
+                    id=id,
+                    file_path=str(path),
+                    first_character_index=start_idx,
+                    last_character_index=end_idx,
+                    tokens_len=0,
+                )
+            )
+            start_idx += max_chunk_size - overlap_size
+            id += 1
         return chunks_objs
 
     @classmethod
-    def __chunk_code(cls, max_chunk_size: int, paths, pbar):
+    def __chunk_code(cls, content, path, max_chunk_size: int, id, parser):
+
         chunks_objs: list[MinimalSource] = []
+        tree = parser.parse(content.encode())
+
+        for chunk in tree.root_node.children:
+            a, b = chunk.byte_range
+            buffer = b - a
+
+            while buffer > max_chunk_size:
+
+                chunks_objs.append(
+                    MinimalSource(
+                        id=id,
+                        file_path=str(path),
+                        first_character_index=a,
+                        last_character_index=a + 2000,
+                        tokens_len=0,
+                    )
+                )
+                a += 2000
+                buffer -= 2000
+                id += 1
+            chunks_objs.append(
+                MinimalSource(
+                    id=id,
+                    file_path=str(path),
+                    first_character_index=a,
+                    last_character_index=b,
+                    tokens_len=0,
+                )
+            )
+            id += 1
+
+        return chunks_objs
+
+    @classmethod
+    def __chunk(
+        cls, max_chunk_size: int, paths, pbar
+    ) -> tuple[list[MinimalSource], list[MinimalSource]]:
+
+        code_chunks_objs: list[MinimalSource] = []
+        docs_chunks_objs: list[MinimalSource] = []
+
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
-        id = 0
+        code_id = 0
+        docs_id = 0
         for path in paths:
             with open(path) as f:
                 content = f.read()
-                tree = parser.parse(content.encode())
-                for chunk in tree.root_node.children:
-                    a, b = chunk.byte_range
-                    buffer = b - a
-
-                    while buffer > max_chunk_size:
-
-                        chunks_objs.append(
-                            MinimalSource(
-                                id=id,
-                                file_path=str(path),
-                                first_character_index=a,
-                                last_character_index=a + 2000,
-                                tokens_len=0,
-                            )
-                        )
-                        a += 2000
-                        buffer -= 2000
-                        id += 1
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id,
-                            file_path=str(path),
-                            first_character_index=a,
-                            last_character_index=b,
-                            tokens_len=0,
-                        )
+                try:
+                    ast.parse(content)
+                    current_chunks = cls.__chunk_code(
+                        content, path, max_chunk_size, code_id, parser
                     )
-                    id += 1
+                    code_id += len(current_chunks)
+                    code_chunks_objs.extend(current_chunks)
+
+                except SyntaxError:
+                    current_chunks = cls.__chunk_docs(
+                        content, path, max_chunk_size, 300, docs_id
+                    )
+                    docs_id += len(current_chunks)
+                    docs_chunks_objs.extend(current_chunks)
+
             pbar.update(1)
-        return chunks_objs
+
+        return (code_chunks_objs, docs_chunks_objs)

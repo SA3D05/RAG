@@ -66,6 +66,9 @@ class Rag:
         ) as f:
             f.write(results.model_dump_json(indent=4))
 
+    def test(self):
+        from .test import result
+
 
 if __name__ == "__main__":
     Fire(Rag)
