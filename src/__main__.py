@@ -20,13 +20,15 @@ class Rag:
         Indexer.index(max_chunk_size)
 
     def search(self, query: str, k: int):
+        retrieval = Retrieval()
         return [
             result.model_dump_json()
-            for result in Retrieval.search(query, k, DocumentType.DOCS)
+            for result in retrieval.search(query, k, DocumentType.DOCS)
         ]
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
         file_path = Path(dataset_path)
+        retrieval = Retrieval()
 
         with open(file_path) as f:
             questions = RagDataset.model_validate_json(f.read()).rag_questions
@@ -43,12 +45,12 @@ class Rag:
                     continue
 
                 if "docs" in file_path.name:
-                    res = Retrieval.search(
+                    res = retrieval.search(
                         quest.question, k, DocumentType.DOCS
                     )
 
                 else:
-                    res = Retrieval.search(
+                    res = retrieval.search(
                         quest.question, k, DocumentType.CODE
                     )
 

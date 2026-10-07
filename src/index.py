@@ -5,7 +5,7 @@ import math
 from tqdm import tqdm
 from .enums import DocumentType, PathInfo
 
-from .models import MinimalSource, Tokenizer, tokenize_python_code
+from .models import MinimalSource, tokenize_python_code
 from collections import Counter
 from tree_sitter import Language, Parser
 import tree_sitter_python
@@ -62,7 +62,7 @@ class Indexer:
                 chunk.first_character_index : chunk.last_character_index + 1
             ]
             if document_type == DocumentType.DOCS:
-                tokens = Tokenizer.tokenize(chunk_content)
+                tokens = tokenize_python_code(chunk_content)
             else:
                 tokens = tokenize_python_code(
                     chunk_content + " " + current_path

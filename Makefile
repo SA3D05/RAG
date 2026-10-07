@@ -1,6 +1,9 @@
 
 
-INPUT_FILE = dataset_code_public.json
+
+
+TYPE = docs
+INPUT_FILE = dataset_$(TYPE)_public.json
 OUTPUT_FILE = dataset_public.json
 CHUNK_SIZE = 2000
 TOP_K = 10

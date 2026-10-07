@@ -9,56 +9,6 @@ CAMEL_SPLIT_REGEX = re.compile(r"([a-z0-9])([A-Z])|([A-Z]+)([A-Z][a-z])")
 # 2. Extract valid Python identifiers (including leading/trailing underscores)
 IDENTIFIER_REGEX = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
 
-# 3. Programming and natural language stopwords to exclude from BM25
-PYTHON_CODE_STOPWORDS = {
-    # Python keywords & common boilerplate
-    "def",
-    "class",
-    "return",
-    "self",
-    "cls",
-    "import",
-    "from",
-    "as",
-    "if",
-    "elif",
-    "else",
-    "for",
-    "while",
-    "in",
-    "is",
-    "not",
-    "and",
-    "or",
-    "try",
-    "except",
-    "finally",
-    "with",
-    "pass",
-    "raise",
-    "yield",
-    "true",
-    "false",
-    "none",
-    "lambda",
-    "global",
-    "nonlocal",
-    "assert",
-    # English fluff words common in docstrings/comments
-    "the",
-    "a",
-    "an",
-    "this",
-    "that",
-    "it",
-    "to",
-    "of",
-    "for",
-    "on",
-    "at",
-    "by",
-}
-
 
 def _split_identifier(name: str) -> list[str]:
     """Expands an identifier into full form and sub-tokens.
@@ -72,8 +22,8 @@ def _split_identifier(name: str) -> list[str]:
     lower_name = name.lower()
 
     # Keep full identifier (critical for exact symbol matches)
-    if len(name) > 1 and lower_name not in PYTHON_CODE_STOPWORDS:
-        sub_tokens.append(lower_name)
+    # if len(name) > 1 and lower_name:
+    #     sub_tokens.append(lower_name)
 
     # Split camelCase / PascalCase
     # e.g., "AsyncLLMEngine" -> "Async LLM Engine"
@@ -86,7 +36,7 @@ def _split_identifier(name: str) -> list[str]:
     parts = re.split(r"[_\s]+", spaced_camel)
     for part in parts:
         clean = part.lower().strip()
-        if len(clean) > 1 and clean not in PYTHON_CODE_STOPWORDS:
+        if len(clean) > 1 and clean:
             sub_tokens.append(clean)
 
     return sub_tokens
@@ -108,28 +58,27 @@ def tokenize_python_code(text: str) -> list[str]:
     return tokens
 
 
-class Tokenizer:
+TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
 
-    TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
 
-    @classmethod
-    def tokenize(cls, text: str) -> list[str]:
-        """Tokenize text for BM25 indexing, preserving term frequency."""
-        if not text:
-            return []
+def tokenize(text: str) -> list[str]:
+    return tokenize_python_code(text)
+    """Tokenize text for BM25 indexing, preserving term frequency."""
+    if not text:
+        return []
 
-        tokens: list[str] = []
+    tokens: list[str] = []
 
-        # Find all clean words, stripping punctuation, markdown markers, parens
-        for match in cls.TOKEN_PATTERN.finditer(text.lower()):
-            word = match.group(0)
+    # Find all clean words, stripping punctuation, markdown markers, parens
+    for match in cls.TOKEN_PATTERN.finditer(text.lower()):
+        word = match.group(0)
 
-            # Strip leading/trailing dashes or underscores
-            word = word.strip("-_")
+        # Strip leading/trailing dashes or underscores
+        word = word.strip("-_")
 
-            if len(word) > 1:
-                tokens.append(word)
-        return tokens
+        if len(word) > 1:
+            tokens.append(word)
+    return tokens
 
 
 class MinimalSource(BaseModel):
