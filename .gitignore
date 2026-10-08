@@ -7,3 +7,5 @@ data/output/*
 test.py
 test_result.json
 result.md
+data/*
+Makefile

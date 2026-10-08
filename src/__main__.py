@@ -27,7 +27,7 @@ class Rag:
         ]
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
-        file_path = Path(dataset_path)
+        file_path = Path(dataset_path)  # $(DATA_SETS)/UnansweredQuestions/
         retrieval = Retrieval()
 
         with open(file_path) as f:
@@ -63,13 +63,13 @@ class Rag:
                 )
 
         with open(
-            save_directory + "/dataset_public.json",
+            save_directory + "/" + file_path.name,
             "w",
         ) as f:
             f.write(results.model_dump_json(indent=4))
 
-    def test(self):
-        from .test import result
+    # def test(self):
+    #     from .test import is_python_file
 
 
 if __name__ == "__main__":

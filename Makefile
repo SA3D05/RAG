@@ -2,9 +2,8 @@
 
 
 
-TYPE = docs
-INPUT_FILE = dataset_$(TYPE)_public.json
-OUTPUT_FILE = dataset_public.json
+TYPE = public
+DATA_SETS = data/dataset_$(TYPE)
 CHUNK_SIZE = 2000
 TOP_K = 10
 
@@ -18,16 +17,33 @@ index:
 #	2>dev.log
 
 search:
+	@ echo "SEARCH_DOCS:"
 	@ uv run python -m src \
-	search_dataset -dataset_path data/datasets/UnansweredQuestions/$(INPUT_FILE) \
+	search_dataset -dataset_path $(DATA_SETS)/UnansweredQuestions/dataset_docs_$(TYPE).json \
+	-k $(TOP_K) \
+	-save_directory data/output/search_results/ 
+
+	@ echo "SEARCH_CODE:"
+	@ uv run python -m src \
+	search_dataset -dataset_path $(DATA_SETS)/UnansweredQuestions/dataset_code_$(TYPE).json \
 	-k $(TOP_K) \
 	-save_directory data/output/search_results/ 
 
 grade:
+	@ echo "-------------------------------------------------"
 	@ moulinette/moulinette evaluate_student_search_results \
-		data/output/search_results/$(OUTPUT_FILE) \
-		data/datasets/AnsweredQuestions/$(INPUT_FILE) \
+		data/output/search_results/dataset_docs_$(TYPE).json \
+		$(DATA_SETS)/AnsweredQuestions/dataset_docs_$(TYPE).json \
 		--k $(TOP_K) 
+	@ echo "------------------- DOCS_TEST -------------------"
+
+	@ echo "-------------------------------------------------"
+	@ moulinette/moulinette evaluate_student_search_results \
+		data/output/search_results/dataset_code_$(TYPE).json \
+		$(DATA_SETS)/AnsweredQuestions/dataset_code_$(TYPE).json \
+		--k $(TOP_K) 
+	@ echo "------------------- CODE_TEST -------------------"
+	
 test:
 	@ uv run python -m src \
 	test

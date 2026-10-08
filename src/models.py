@@ -2,83 +2,55 @@ from pydantic import BaseModel, Field
 import uuid
 import re
 
-# 1. Regex to split PascalCase / camelCase
-# Example: "AsyncLLMEngine" -> splits between lower/upper, acronym/title
-CAMEL_SPLIT_REGEX = re.compile(r"([a-z0-9])([A-Z])|([A-Z]+)([A-Z][a-z])")
 
-# 2. Extract valid Python identifiers (including leading/trailing underscores)
-IDENTIFIER_REGEX = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+class Tokenizer:
+    # 1. Regex to split PascalCase / camelCase
+    # Example: "AsyncLLMEngine" -> splits between lower/upper, acronym/title
+    CAMEL_SPLIT_REGEX = re.compile(r"([a-z0-9])([A-Z])|([A-Z]+)([A-Z][a-z])")
 
+    # 2. Extract valid Python identifiers (including leading/trailing underscores)
+    IDENTIFIER_REGEX = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+    TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
 
-def _split_identifier(name: str) -> list[str]:
-    """Expands an identifier into full form and sub-tokens.
+    @classmethod
+    def __split_identifier(cls, name: str) -> list[str]:
 
-    Examples:
-        'AsyncLLMEngine'     -> ['asyncllmengine', 'async', 'llm', 'engine']
-        'init_cache_engine'  -> ['init_cache_engine', 'init', 'cache', 'engine']
-        '__init__'           -> ['__init__', 'init']
-    """
-    sub_tokens: list[str] = []
-    lower_name = name.lower()
+        sub_tokens: list[str] = []
+        lower_name = name.lower()
 
-    # Keep full identifier (critical for exact symbol matches)
-    # if len(name) > 1 and lower_name:
-    #     sub_tokens.append(lower_name)
+        # Keep full identifier (critical for exact symbol matches)
+        if len(name) > 1 and lower_name:
+            sub_tokens.append(lower_name)
 
-    # Split camelCase / PascalCase
-    # e.g., "AsyncLLMEngine" -> "Async LLM Engine"
-    spaced_camel = CAMEL_SPLIT_REGEX.sub(
-        lambda m: f"{m.group(1) or m.group(3)} {m.group(2) or m.group(4)}",
-        name,
-    )
+        ## Split camelCase / PascalCase
+        # # e.g., "AsyncLLMEngine" -> "Async LLM Engine"
+        spaced_camel = cls.CAMEL_SPLIT_REGEX.sub(
+            lambda m: f"{m.group(1) or m.group(3)} {m.group(2) or m.group(4)}",
+            name,
+        )
 
-    # Split on whitespace and underscores for atomic sub-tokens
-    parts = re.split(r"[_\s]+", spaced_camel)
-    for part in parts:
-        clean = part.lower().strip()
-        if len(clean) > 1 and clean:
-            sub_tokens.append(clean)
+        # # Split on whitespace and underscores for atomic sub-tokens
+        parts = re.split(r"[_\s]+", lower_name)
+        for part in parts:
+            clean = part.lower().strip()
+            if len(clean) > 1 and clean:
+                sub_tokens.append(clean)
 
-    return sub_tokens
+        return sub_tokens
 
+    @classmethod
+    def tokenize(cls, text: str) -> list[str]:
+        if not text:
+            return []
 
-def tokenize_python_code(text: str) -> list[str]:
-    """Tokenize Python code chunks and code queries for BM25 indexing."""
-    if not text:
-        return []
+        tokens: list[str] = []
 
-    tokens: list[str] = []
+        matches = cls.IDENTIFIER_REGEX.findall(text)
 
-    # Find all Python identifiers across the code
-    matches = IDENTIFIER_REGEX.findall(text)
-    for match in matches:
-        extracted = _split_identifier(match)
-        tokens.extend(extracted)
-
-    return tokens
-
-
-TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
-
-
-def tokenize(text: str) -> list[str]:
-    return tokenize_python_code(text)
-    """Tokenize text for BM25 indexing, preserving term frequency."""
-    if not text:
-        return []
-
-    tokens: list[str] = []
-
-    # Find all clean words, stripping punctuation, markdown markers, parens
-    for match in cls.TOKEN_PATTERN.finditer(text.lower()):
-        word = match.group(0)
-
-        # Strip leading/trailing dashes or underscores
-        word = word.strip("-_")
-
-        if len(word) > 1:
-            tokens.append(word)
-    return tokens
+        for match in matches:
+            extracted = cls.__split_identifier(match)
+            tokens.extend(extracted)
+        return tokens
 
 
 class MinimalSource(BaseModel):
