@@ -68,8 +68,8 @@ class Rag:
         ) as f:
             f.write(results.model_dump_json(indent=4))
 
-    # def test(self):
-    #     from .test import is_python_file
+    def test(self):
+        from .test import test
 
 
 if __name__ == "__main__":

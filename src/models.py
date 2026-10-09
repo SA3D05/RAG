@@ -4,39 +4,7 @@ import re
 
 
 class Tokenizer:
-    # 1. Regex to split PascalCase / camelCase
-    # Example: "AsyncLLMEngine" -> splits between lower/upper, acronym/title
-    CAMEL_SPLIT_REGEX = re.compile(r"([a-z0-9])([A-Z])|([A-Z]+)([A-Z][a-z])")
-
-    # 2. Extract valid Python identifiers (including leading/trailing underscores)
     IDENTIFIER_REGEX = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
-    TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+(?:[-_][a-zA-Z0-9]+)*")
-
-    @classmethod
-    def __split_identifier(cls, name: str) -> list[str]:
-
-        sub_tokens: list[str] = []
-        lower_name = name.lower()
-
-        # Keep full identifier (critical for exact symbol matches)
-        if len(name) > 1 and lower_name:
-            sub_tokens.append(lower_name)
-
-        ## Split camelCase / PascalCase
-        # # e.g., "AsyncLLMEngine" -> "Async LLM Engine"
-        spaced_camel = cls.CAMEL_SPLIT_REGEX.sub(
-            lambda m: f"{m.group(1) or m.group(3)} {m.group(2) or m.group(4)}",
-            name,
-        )
-
-        # # Split on whitespace and underscores for atomic sub-tokens
-        parts = re.split(r"[_\s]+", lower_name)
-        for part in parts:
-            clean = part.lower().strip()
-            if len(clean) > 1 and clean:
-                sub_tokens.append(clean)
-
-        return sub_tokens
 
     @classmethod
     def tokenize(cls, text: str) -> list[str]:
@@ -48,8 +16,12 @@ class Tokenizer:
         matches = cls.IDENTIFIER_REGEX.findall(text)
 
         for match in matches:
-            extracted = cls.__split_identifier(match)
-            tokens.extend(extracted)
+            parts = re.split(r"[_\s]+", match)
+            for part in parts:
+                clean = part.lower().strip()
+                if len(clean) > 1 and clean:
+                    tokens.append(clean)
+
         return tokens
 
 

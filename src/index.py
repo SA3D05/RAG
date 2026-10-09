@@ -176,8 +176,7 @@ class Indexer:
                     current_start_byte = -1
                     current_end_byte = -1
 
-                # Blindly split the huge node by max_chunk_size (Your original logic)
-                # Note: Replaced hardcoded '2000' with 'max_chunk_size' for consistency
+                # Blindly split the huge node by max_chunk_size
                 a = node_start
                 buffer = node_size
                 while buffer > max_chunk_size:

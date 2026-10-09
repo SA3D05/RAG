@@ -1,8 +1,4 @@
-
-
-
-
-TYPE = public
+TYPE = private
 DATA_SETS = data/dataset_$(TYPE)
 CHUNK_SIZE = 2000
 TOP_K = 10
