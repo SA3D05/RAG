@@ -146,105 +146,62 @@ class Indexer:
 
     @classmethod
     def __chunk_code(
-        cls, content, path, max_chunk_size: int, id_counter, parser
-    ):
+        cls, tree, max_chunk_size, min_chunk_size, id_counter, path
+    ) -> list[MinimalSource]:
         chunks_objs: list[MinimalSource] = []
-        tree = parser.parse(content.encode())
 
-        # Accumulators to track the bounds of grouped small nodes
-        current_start_byte = -1
-        current_end_byte = -1
+        start_byte = -1
+        end_byte = -1
+        range_size = -1
 
-        for node in tree.root_node.children:
-            node_start, node_end = node.byte_range
-            node_size = node_end - node_start
-
-            # CASE 1: The node itself is massive (e.g., a giant class/function)
-            if node_size > max_chunk_size:
-                # Flush the current accumulator before processing the massive node
-                if current_start_byte != -1:
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id_counter,
-                            file_path=str(path),
-                            first_character_index=current_start_byte,
-                            last_character_index=current_end_byte,
-                            tokens_len=0,
-                        )
-                    )
-                    id_counter += 1
-                    current_start_byte = -1
-                    current_end_byte = -1
-
-                # Blindly split the huge node by max_chunk_size
-                a = node_start
-                buffer = node_size
-                while buffer > max_chunk_size:
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id_counter,
-                            file_path=str(path),
-                            first_character_index=a,
-                            last_character_index=a + max_chunk_size,
-                            tokens_len=0,
-                        )
-                    )
-                    a += max_chunk_size
-                    buffer -= max_chunk_size
-                    id_counter += 1
-
-                if buffer > 0:
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id_counter,
-                            file_path=str(path),
-                            first_character_index=a,
-                            last_character_index=node_end,
-                            tokens_len=0,
-                        )
-                    )
-                    id_counter += 1
-
-            # CASE 2: Normal/Small nodes (imports, small functions)
-            else:
-                if current_start_byte == -1:
-                    # Start a new grouping buffer
-                    current_start_byte = node_start
-                    current_end_byte = node_end
-
-                elif (node_end - current_start_byte) <= max_chunk_size:
-                    # The node fits in our current grouping; extend the boundaries
-                    current_end_byte = node_end
-
-                else:
-                    # Adding this node would exceed max_chunk_size; flush current grouping
-                    chunks_objs.append(
-                        MinimalSource(
-                            id=id_counter,
-                            file_path=str(path),
-                            first_character_index=current_start_byte,
-                            last_character_index=current_end_byte,
-                            tokens_len=0,
-                        )
-                    )
-                    id_counter += 1
-                    # Start a new grouping with the current node
-                    current_start_byte = node_start
-                    current_end_byte = node_end
-
-        # Clean up: flush whatever is left in the grouping buffer at the end of the file
-        if current_start_byte != -1:
+        def add_chunk():
+            nonlocal id_counter
             chunks_objs.append(
                 MinimalSource(
                     id=id_counter,
                     file_path=str(path),
-                    first_character_index=current_start_byte,
-                    last_character_index=current_end_byte,
+                    first_character_index=start_byte,
+                    last_character_index=start_byte + max_chunk_size,
                     tokens_len=0,
                 )
             )
             id_counter += 1
 
+        def size_big():
+            nonlocal start_byte
+            nonlocal end_byte
+            nonlocal range_size
+            nonlocal id_counter
+
+            add_chunk()
+            start_byte += max_chunk_size
+            range_size -= max_chunk_size
+
+        for child in tree.root_node.children:
+
+            if start_byte != -1:
+                _, end_byte = child.byte_range
+            else:
+                start_byte, end_byte = child.byte_range
+
+            range_size = end_byte - start_byte
+
+            while range_size > max_chunk_size:
+                size_big()
+            if range_size < min_chunk_size:
+                continue
+            add_chunk()
+            start_byte = -1
+            end_byte = -1
+
+        if start_byte != -1 or end_byte != -1:
+
+            range_size = end_byte - start_byte
+
+            while range_size > max_chunk_size:
+                size_big()
+            if range_size > 0:
+                add_chunk()
         return chunks_objs
 
     @classmethod
@@ -264,8 +221,9 @@ class Indexer:
                 content = f.read()
                 try:
                     ast.parse(content)
+                    tree = parser.parse(content.encode())
                     current_chunks = cls.__chunk_code(
-                        content, path, max_chunk_size, code_id, parser
+                        tree, max_chunk_size, 1500, code_id, path
                     )
                     code_id += len(current_chunks)
                     code_chunks_objs.extend(current_chunks)

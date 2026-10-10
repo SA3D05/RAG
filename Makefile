@@ -42,7 +42,7 @@ grade:
 	
 test:
 	@ uv run python -m src \
-	test
+	test 2>text.log
 
 
 clean:
