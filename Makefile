@@ -1,5 +1,5 @@
-TYPE = private
-DATA_SETS = data/dataset_$(TYPE)
+TYPE = public
+DATA_SETS = data/datasets
 CHUNK_SIZE = 2000
 TOP_K = 10
 
@@ -17,25 +17,25 @@ search:
 	@ uv run python -m src \
 	search_dataset -dataset_path $(DATA_SETS)/UnansweredQuestions/dataset_docs_$(TYPE).json \
 	-k $(TOP_K) \
-	-save_directory data/output/search_results/ 
+	-save_directory data/output/search_results/UnansweredQuestions
 
 	@ echo "SEARCH_CODE:"
 	@ uv run python -m src \
 	search_dataset -dataset_path $(DATA_SETS)/UnansweredQuestions/dataset_code_$(TYPE).json \
 	-k $(TOP_K) \
-	-save_directory data/output/search_results/ 
+	-save_directory data/output/search_results/UnansweredQuestions
 
 grade:
 	@ echo "-------------------------------------------------"
-	@ moulinette/moulinette evaluate_student_search_results \
-		data/output/search_results/dataset_docs_$(TYPE).json \
+	@ ./moulinette evaluate_student_search_results \
+		data/output/search_results/UnansweredQuestions/dataset_docs_$(TYPE).json \
 		$(DATA_SETS)/AnsweredQuestions/dataset_docs_$(TYPE).json \
 		--k $(TOP_K) 
 	@ echo "------------------- DOCS_TEST -------------------"
 
 	@ echo "-------------------------------------------------"
-	@ moulinette/moulinette evaluate_student_search_results \
-		data/output/search_results/dataset_code_$(TYPE).json \
+	@ ./moulinette evaluate_student_search_results \
+		data/output/search_results/UnansweredQuestions/dataset_code_$(TYPE).json \
 		$(DATA_SETS)/AnsweredQuestions/dataset_code_$(TYPE).json \
 		--k $(TOP_K) 
 	@ echo "------------------- CODE_TEST -------------------"
@@ -47,5 +47,5 @@ test:
 
 clean:
 	rm -f data/processed/*
-	rm -f data/output/search_results/*
-	rm -f data/output/search_results_and_answer/*
+	rm -f data/output/search_results/UnansweredQuestions/*
+	rm -f data/output/search_results_and_answer/UnansweredQuestions/*

@@ -1,11 +1,9 @@
 en.subject.pdf
 __pycache__
 .venv
-data/raw/*
-data/processed/*
-data/output/*
+data
 test.py
 test_result.json
 result.md
-data/*
-Makefile
+moulinette
+setuprag.sh
