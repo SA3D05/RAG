@@ -9,5 +9,7 @@ dependencies = [
     "tqdm",
     "tree-sitter",
     "tree-sitter-python",
-    "transformers",
+    "transformers==4.57.6",
+    "torch>=2.14.1",
+    "accelerate>=1.15.0",
 ]
