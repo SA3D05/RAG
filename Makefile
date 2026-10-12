@@ -5,7 +5,7 @@ TOP_K = 10
 
 
 
-all: index search grade
+all: index search grade answer
 
 
 index:
@@ -39,7 +39,14 @@ grade:
 		$(DATA_SETS)/AnsweredQuestions/dataset_code_$(TYPE).json \
 		--k $(TOP_K) 
 	@ echo "------------------- CODE_TEST -------------------"
-	
+
+
+
+answer:
+	@uv run python -m src answer_dataset \
+	--student_search_results_path data/output/search_results/UnansweredQuestions/dataset_docs_$(TYPE).json \
+	--save_directory data/output/search_results_and_answer/UnansweredQuestions
+
 test:
 	@ uv run python -m src \
 	test 2>text.log

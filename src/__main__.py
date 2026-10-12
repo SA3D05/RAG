@@ -1,14 +1,18 @@
 from pathlib import Path
+from pprint import pprint
 
 from fire import Fire
 from tqdm import tqdm
 
+
+from .generation import Model
 from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
 from .models import (
     RagDataset,
     StudentSearchResults,
+    StudentSearchResultsAndAnswer,
     UnansweredQuestion,
     MinimalSearchResults,
 )
@@ -67,6 +71,24 @@ class Rag:
             "w",
         ) as f:
             f.write(results.model_dump_json(indent=4))
+
+    def answer_dataset(
+        self, student_search_results_path: str, save_directory: str
+    ):
+        source_path = Path(student_search_results_path)
+        with open(source_path) as f:
+            content = StudentSearchResults.model_validate_json(f.read())
+
+        model = Model()
+        result: StudentSearchResultsAndAnswer = StudentSearchResultsAndAnswer(
+            search_results=[], k=content.k
+        )
+        for search_result in content.search_results:
+            answer = model.generate(search_result)
+            result.search_results.append(answer)
+
+        with open(save_directory + "/" + source_path.name, "w") as f:
+            f.write(result.model_dump_json(indent=4))
 
     def test(self):
         from .test import test

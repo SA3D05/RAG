@@ -9,4 +9,5 @@ dependencies = [
     "tqdm",
     "tree-sitter",
     "tree-sitter-python",
+    "transformers",
 ]
