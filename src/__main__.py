@@ -1,10 +1,6 @@
 from pathlib import Path
-from pprint import pprint
-
 from fire import Fire
 from tqdm import tqdm
-
-
 from .generation import Model
 from .enums import DocumentType
 from .search import Retrieval
@@ -37,7 +33,9 @@ class Rag:
         with open(file_path) as f:
             questions = RagDataset.model_validate_json(f.read()).rag_questions
 
-        results: StudentSearchResults = StudentSearchResults(search_results=[], k=k)
+        results: StudentSearchResults = StudentSearchResults(
+            search_results=[], k=k
+        )
         print("retriving ...")
         with tqdm(total=len(questions)) as pbar:
             for quest in questions:
@@ -47,10 +45,14 @@ class Rag:
                     continue
 
                 if "docs" in file_path.name:
-                    res = retrieval.search(quest.question, k, DocumentType.DOCS)
+                    res = retrieval.search(
+                        quest.question, k, DocumentType.DOCS
+                    )
 
                 else:
-                    res = retrieval.search(quest.question, k, DocumentType.CODE)
+                    res = retrieval.search(
+                        quest.question, k, DocumentType.CODE
+                    )
 
                 results.search_results.append(
                     MinimalSearchResults(
@@ -66,7 +68,9 @@ class Rag:
         ) as f:
             f.write(results.model_dump_json(indent=4))
 
-    def answer_dataset(self, student_search_results_path: str, save_directory: str):
+    def answer_dataset(
+        self, student_search_results_path: str, save_directory: str
+    ):
         source_path = Path(student_search_results_path)
         with open(source_path) as f:
             content = StudentSearchResults.model_validate_json(f.read())
@@ -75,15 +79,11 @@ class Rag:
         result: StudentSearchResultsAndAnswer = StudentSearchResultsAndAnswer(
             search_results=[], k=content.k
         )
-        i = 0
         with tqdm(total=len(content.search_results)) as pbar:
             for search_result in content.search_results:
                 answer = model.generate(search_result)
                 result.search_results.append(answer)
-                i += 1
                 pbar.update(1)
-                if i > 6:
-                    break
 
         with open(save_directory + "/" + source_path.name, "w") as f:
             f.write(result.model_dump_json(indent=4))

@@ -1,5 +1,4 @@
 from transformers import AutoTokenizer, pipeline
-import transformers
 from .models import MinimalAnswer, MinimalSearchResults, MinimalSource
 
 
@@ -13,7 +12,6 @@ class Model:
             "text-generation",
             model=self.model_id,
             tokenizer=self.tokenizer,
-            clean_up_tokenization_spaces=False,
         )
 
         self.system_prompt = (
@@ -31,7 +29,9 @@ class Model:
         content = ""
         with open(source.file_path) as f:
             content = f.read()
-        return content[source.first_character_index : source.last_character_index]
+        return content[
+            source.first_character_index : source.last_character_index
+        ]
 
     def generate(self, search_result: MinimalSearchResults) -> MinimalAnswer:
         context = "\n".join(

@@ -19,6 +19,7 @@ class Indexer:
         print("chunking ...")
         code_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.py")]
         docs_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.md")]
+        docs_paths.extend([p for p in PathInfo.RAW_DATA.value.rglob("*.txt")])
 
         with tqdm(total=len(docs_paths) + len(code_paths)) as pbar:
             code_chunks, docs_chunks = cls.__chunk(
