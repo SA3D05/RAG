@@ -1,8 +1,9 @@
 from pathlib import Path
+import sys
 from fire import Fire
 from tqdm import tqdm
 from .generation import Model
-from .enums import DocumentType
+from .enums import DocumentType, Statics
 from .search import Retrieval
 from .index import Indexer
 from .models import (
@@ -17,6 +18,18 @@ from .models import (
 class Rag:
 
     def index(self, max_chunk_size=2000):
+        min_size, overlap_size = (
+            Statics.CODE_MIN_CHUNK_SIZE.value,
+            Statics.DOCS_OVERLAP_SIZE.value,
+        )
+        if max_chunk_size <= overlap_size:
+            print(f"'max_chunk_size' cannot be less \
+                    than overlap size '{overlap_size}'")
+            sys.exit()
+        elif max_chunk_size <= min_size:
+            print(f"'max_chunk_size' cannot be less \
+                    than min_chunk_size size '{min_size}'")
+            sys.exit()
         Indexer.index(max_chunk_size)
 
     def search(self, query: str, k: int):
@@ -88,8 +101,8 @@ class Rag:
         with open(save_directory + "/" + source_path.name, "w") as f:
             f.write(result.model_dump_json(indent=4))
 
-    def test(self):
-        from .test import test
+    # def test(self):
+    #     from .test import test
 
 
 if __name__ == "__main__":

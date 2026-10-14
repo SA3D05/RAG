@@ -7,7 +7,7 @@ import tree_sitter_python
 from collections import Counter
 from tree_sitter import Language, Parser
 
-from .enums import DocumentType, PathInfo
+from .enums import DocumentType, PathInfo, Statics
 from .models import MinimalSource, Tokenizer
 
 
@@ -119,9 +119,7 @@ class Indexer:
         pbar.update(1)
 
     @classmethod
-    def __chunk_docs(
-        cls, content, path, max_chunk_size: int, overlap_size: int, id
-    ):
+    def __chunk_docs(cls, content, path, max_chunk_size: int, id):
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
@@ -130,7 +128,6 @@ class Indexer:
         start_idx = 0
         end_idx = 0
         while start_idx <= content_len:
-
             end_idx = min(start_idx + max_chunk_size, content_len) - 1
             chunks_objs.append(
                 MinimalSource(
@@ -141,16 +138,16 @@ class Indexer:
                     tokens_len=0,
                 )
             )
-            start_idx += max_chunk_size - overlap_size
+            start_idx += max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value
             id += 1
+
         return chunks_objs
 
     @classmethod
     def __chunk_code(
-        cls, tree, max_chunk_size, min_chunk_size, id_counter, path
+        cls, tree, max_chunk_size, id_counter, path
     ) -> list[MinimalSource]:
         chunks_objs: list[MinimalSource] = []
-
         start_byte = -1
         end_byte = -1
         range_size = -1
@@ -189,7 +186,7 @@ class Indexer:
 
             while range_size > max_chunk_size:
                 size_big()
-            if range_size < min_chunk_size:
+            if range_size < Statics.CODE_MIN_CHUNK_SIZE.value:
                 continue
             add_chunk()
             start_byte = -1
@@ -224,14 +221,14 @@ class Indexer:
                     ast.parse(content)
                     tree = parser.parse(content.encode())
                     current_chunks = cls.__chunk_code(
-                        tree, max_chunk_size, 1500, code_id, path
+                        tree, max_chunk_size, code_id, path
                     )
                     code_id += len(current_chunks)
                     code_chunks_objs.extend(current_chunks)
 
                 except SyntaxError:
                     current_chunks = cls.__chunk_docs(
-                        content, path, max_chunk_size, 300, docs_id
+                        content, path, max_chunk_size, docs_id
                     )
                     docs_id += len(current_chunks)
                     docs_chunks_objs.extend(current_chunks)

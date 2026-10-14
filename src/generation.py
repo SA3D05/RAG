@@ -17,11 +17,17 @@ class Model:
         self.system_prompt = (
             "You are an exact technical Q&A assistant.\n\n"
             "Rules:\n"
-            "1. Answer the question directly with the exact command, term, value, or code.\n"
-            "2. NEVER say phrases like 'provided in the context', 'the text states', 'according to the documents', or 'the context mentions'. State the facts directly.\n"
-            "3. Do not describe what the context contains—extract and output the answer itself.\n"
-            "4. If the context does not contain the answer, reply ONLY with: "
-            "'I cannot answer this question based on the provided documents.'\n"
+            "1. Answer the question directly with the exact \
+                command, term, value, or code.\n"
+            "2. NEVER say phrases like 'provided in the context', \
+                'the text states', 'according to the documents', or \
+                    'the context mentions'. State the facts directly.\n"
+            "3. Do not describe what the context contains—extract \
+                and output the answer itself.\n"
+            "4. If the context does not contain the answer, \
+                reply ONLY with: "
+            "'I cannot answer this question based on the \
+                provided documents.'\n"
             "5. Keep the answer to 1-2 direct sentences maximum."
         )
 
@@ -29,9 +35,8 @@ class Model:
         content = ""
         with open(source.file_path) as f:
             content = f.read()
-        return content[
-            source.first_character_index : source.last_character_index
-        ]
+        first, last = source.first_character_index, source.last_character_index
+        return content[first:last]
 
     def generate(self, search_result: MinimalSearchResults) -> MinimalAnswer:
         context = "\n".join(
@@ -41,7 +46,8 @@ class Model:
             {"role": "system", "content": self.system_prompt},
             {
                 "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion:\n{search_result.question}",
+                "content": f"Context:\n{context}\n\
+                    \nQuestion:\n{search_result.question}",
             },
         ]
 

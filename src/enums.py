@@ -7,6 +7,11 @@ class DocumentType(Enum):
     DOCS = auto()
 
 
+class Statics(Enum):
+    CODE_MIN_CHUNK_SIZE = 500
+    DOCS_OVERLAP_SIZE = 300
+
+
 class PathInfo(Enum):
 
     CODE_TF = Path("data/processed/code_term_frequency.json")
