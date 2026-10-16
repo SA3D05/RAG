@@ -1,6 +1,7 @@
 en.subject.pdf
 __pycache__
 .venv
+.mypy_cache
 data
 test.py
 test_result.json

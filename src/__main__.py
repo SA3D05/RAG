@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 import sys
 from fire import Fire
@@ -7,6 +8,7 @@ from .enums import DocumentType, Statics
 from .search import Retrieval
 from .index import Indexer
 from .models import (
+    AnsweredQuestion,
     RagDataset,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
@@ -100,6 +102,33 @@ class Rag:
 
         with open(save_directory + "/" + source_path.name, "w") as f:
             f.write(result.model_dump_json(indent=4))
+
+    def evaluate(self, student_search_results_path: str, dataset_path: str):
+        # Recall@k = (Number of queries with target in top-k) / (Total queries)
+
+        with open(student_search_results_path) as f:
+            search_results = StudentSearchResults.model_validate_json(f.read())
+
+        with open(dataset_path) as f:
+            ground_truth = RagDataset.model_validate_json(f.read())
+        valid_retriev = 0
+        for result in search_results.search_results:
+            truth_result: AnsweredQuestion | None = None
+
+            for question in ground_truth.rag_questions:
+                if question.question_id == result.question_id:
+                    truth_result = question  # type: ignore
+                    break
+
+            if truth_result is None:
+                print("question are not found!")
+                exit()
+            if (
+                result.retrieved_sources[0].file_path
+                == truth_result.sources[0].file_path
+            ):
+                valid_retriev += 1
+        print(valid_retriev / len(search_results.search_results))
 
     # def test(self):
     #     from .test import test

@@ -26,11 +26,11 @@ class Tokenizer:
 
 
 class MinimalSource(BaseModel):
-    id: int
+    id: int | None = None
     file_path: str
     first_character_index: int
     last_character_index: int
-    tokens_len: int
+    tokens_len: int | None = None
 
 
 class UnansweredQuestion(BaseModel):
