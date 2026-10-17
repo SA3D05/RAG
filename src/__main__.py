@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from pprint import pprint
 import sys
 from fire import Fire
 from tqdm import tqdm
@@ -10,6 +11,7 @@ from .index import Indexer
 from .models import (
     AnsweredQuestion,
     RagDataset,
+    Recall,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
     UnansweredQuestion,
@@ -107,28 +109,24 @@ class Rag:
         # Recall@k = (Number of queries with target in top-k) / (Total queries)
 
         with open(student_search_results_path) as f:
-            search_results = StudentSearchResults.model_validate_json(f.read())
+            results = StudentSearchResults.model_validate_json(f.read())
 
         with open(dataset_path) as f:
-            ground_truth = RagDataset.model_validate_json(f.read())
-        valid_retriev = 0
-        for result in search_results.search_results:
-            truth_result: AnsweredQuestion | None = None
+            dataset = RagDataset.model_validate_json(f.read())
 
-            for question in ground_truth.rag_questions:
-                if question.question_id == result.question_id:
-                    truth_result = question  # type: ignore
-                    break
+        ground_truth = {
+            answer.question_id: answer.sources  # type: ignore Cannot access attribute "sources" for class "UnansweredQuestion"
+            for answer in dataset.rag_questions
+        }
+        # if not all(
+        #     isinstance(item, AnsweredQuestion)
+        #     for item in ground_truth.rag_questions
+        # ):
+        #     print("all rag_questions must be an AnsweredQuestion Object!")
+        #     exit()
 
-            if truth_result is None:
-                print("question are not found!")
-                exit()
-            if (
-                result.retrieved_sources[0].file_path
-                == truth_result.sources[0].file_path
-            ):
-                valid_retriev += 1
-        print(valid_retriev / len(search_results.search_results))
+        validator = Recall()
+        validator.evaluate(results.search_results, ground_truth)
 
     # def test(self):
     #     from .test import test

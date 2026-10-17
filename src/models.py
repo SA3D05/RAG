@@ -65,3 +65,63 @@ class StudentSearchResults(BaseModel):
 class StudentSearchResultsAndAnswer(BaseModel):
     search_results: list[MinimalAnswer]
     k: int
+
+
+class Recall:
+    def __init__(self) -> None:
+        pass
+
+    def __get_question_idx(
+        self, question_id, ground_truth: list[AnsweredQuestion]
+    ) -> None | int:
+
+        for idx, question in enumerate(ground_truth):
+            if question.question_id == question_id:
+                return idx
+        return None
+
+    def __get_intersection(
+        self, truth_source: MinimalSource, result_source: MinimalSource
+    ):
+
+        truth_start = truth_source.first_character_index
+        truth_end = truth_source.last_character_index
+
+        result_start = result_source.first_character_index
+        result_end = result_source.last_character_index
+
+        return min(result_end, truth_end) - max(result_start, truth_start)
+
+    def __get_union(
+        self, truth_source: MinimalSource, result_source: MinimalSource
+    ):
+
+        truth_start = truth_source.first_character_index
+        truth_end = truth_source.last_character_index
+
+        result_start = result_source.first_character_index
+        result_end = result_source.last_character_index
+
+        return max(result_end, truth_end) - min(result_start, truth_start)
+
+    def evaluate(
+        self,
+        results: list[MinimalSearchResults],
+        ground_truth: dict[str, list[MinimalSource]],
+    ) -> float:
+        count = 0
+        for question_result in results:
+            # answered_question
+
+            result_source = question_result.retrieved_sources[0]
+            truth_source = ground_truth[question_result.question_id][0]
+
+            if result_source.file_path != truth_source.file_path:
+                continue
+
+            intersection = self.__get_intersection(truth_source, result_source)
+            union = self.__get_union(truth_source, result_source)
+
+            if intersection / union > 0.05:
+                count += 1
+        return count / len(results)
