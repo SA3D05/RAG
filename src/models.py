@@ -69,16 +69,7 @@ class StudentSearchResultsAndAnswer(BaseModel):
 
 class Recall:
     def __init__(self) -> None:
-        pass
-
-    def __get_question_idx(
-        self, question_id, ground_truth: list[AnsweredQuestion]
-    ) -> None | int:
-
-        for idx, question in enumerate(ground_truth):
-            if question.question_id == question_id:
-                return idx
-        return None
+        self.min_iou = 0.05
 
     def __get_intersection(
         self, truth_source: MinimalSource, result_source: MinimalSource
@@ -104,24 +95,51 @@ class Recall:
 
         return max(result_end, truth_end) - min(result_start, truth_start)
 
+    def __check_iou(
+        self, truth_source: MinimalSource, result_source: MinimalSource
+    ) -> bool:
+
+        intersection = self.__get_intersection(truth_source, result_source)
+        union = self.__get_union(truth_source, result_source)
+
+        if intersection / union > self.min_iou:
+            return True
+        return False
+
+    def __is_found(
+        self,
+        truth_source: MinimalSource,
+        result_source: list[MinimalSource],
+    ) -> bool:
+        for source in result_source:
+            if source.file_path != truth_source.file_path:
+                continue
+            if self.__check_iou(truth_source, source):
+                return True
+        return False
+
     def evaluate(
         self,
         results: list[MinimalSearchResults],
         ground_truth: dict[str, list[MinimalSource]],
-    ) -> float:
-        count = 0
+    ) -> list[dict]:
+        recalls = {
+            1: 0,
+            3: 0,
+            5: 0,
+            10: 0,
+        }
         for question_result in results:
-            # answered_question
-
-            result_source = question_result.retrieved_sources[0]
             truth_source = ground_truth[question_result.question_id][0]
+            for k in recalls.keys():
 
-            if result_source.file_path != truth_source.file_path:
-                continue
+                if self.__is_found(
+                    truth_source, question_result.retrieved_sources[:k]
+                ):
+                    recalls[k] = recalls[k] + 1
+        results_len = len(results)
 
-            intersection = self.__get_intersection(truth_source, result_source)
-            union = self.__get_union(truth_source, result_source)
+        for k, v in recalls.items():
+            recalls[k] = v / results_len
 
-            if intersection / union > 0.05:
-                count += 1
-        return count / len(results)
+        return recalls

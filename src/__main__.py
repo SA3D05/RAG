@@ -126,7 +126,8 @@ class Rag:
         #     exit()
 
         validator = Recall()
-        validator.evaluate(results.search_results, ground_truth)
+        recalls = validator.evaluate(results.search_results, ground_truth)
+        print(recalls)
 
     # def test(self):
     #     from .test import test
