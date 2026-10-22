@@ -4,7 +4,8 @@ from pprint import pprint
 import sys
 from fire import Fire
 from tqdm import tqdm
-from .generation import Model
+
+# from .generation import Model
 from .enums import DocumentType, Statics
 from .search import Retrieval
 from .index import Indexer
@@ -47,8 +48,9 @@ class Rag:
         file_path = Path(dataset_path)  # $(DATA_SETS)/UnansweredQuestions/
         retrieval = Retrieval()
 
-        with open(file_path) as f:
-            questions = RagDataset.model_validate_json(f.read()).rag_questions
+        questions = RagDataset.model_validate_json(
+            self.__readfile(dataset_path)
+        ).rag_questions
 
         results: StudentSearchResults = StudentSearchResults(
             search_results=[], k=k
@@ -79,20 +81,21 @@ class Rag:
                     )
                 )
 
-        with open(
+        self.__writefile(
             save_directory + "/" + file_path.name,
-            "w",
-        ) as f:
-            f.write(results.model_dump_json(indent=4))
+            results.model_dump_json(indent=4),
+        )
 
     def answer_dataset(
         self, student_search_results_path: str, save_directory: str
     ):
         source_path = Path(student_search_results_path)
-        with open(source_path) as f:
-            content = StudentSearchResults.model_validate_json(f.read())
 
-        model = Model()
+        content = StudentSearchResults.model_validate_json(
+            self.__readfile(student_search_results_path)
+        )
+
+        model = Model()  # type: ignore
         result: StudentSearchResultsAndAnswer = StudentSearchResultsAndAnswer(
             search_results=[], k=content.k
         )
@@ -102,32 +105,53 @@ class Rag:
                 result.search_results.append(answer)
                 pbar.update(1)
 
-        with open(save_directory + "/" + source_path.name, "w") as f:
-            f.write(result.model_dump_json(indent=4))
+        self.__writefile(
+            save_directory + "/" + source_path.name,
+            result.model_dump_json(indent=4),
+        )
 
     def evaluate(self, student_search_results_path: str, dataset_path: str):
         # Recall@k = (Number of queries with target in top-k) / (Total queries)
 
-        with open(student_search_results_path) as f:
-            results = StudentSearchResults.model_validate_json(f.read())
+        results = StudentSearchResults.model_validate_json(
+            self.__readfile(student_search_results_path)
+        )
 
-        with open(dataset_path) as f:
-            dataset = RagDataset.model_validate_json(f.read())
+        dataset = RagDataset.model_validate_json(self.__readfile(dataset_path))
 
         ground_truth = {
             answer.question_id: answer.sources  # type: ignore Cannot access attribute "sources" for class "UnansweredQuestion"
             for answer in dataset.rag_questions
         }
-        # if not all(
-        #     isinstance(item, AnsweredQuestion)
-        #     for item in ground_truth.rag_questions
-        # ):
-        #     print("all rag_questions must be an AnsweredQuestion Object!")
-        #     exit()
 
         validator = Recall()
         recalls = validator.evaluate(results.search_results, ground_truth)
-        print(recalls)
+        result = {f"recall@{k}": v for k, v in recalls.items()}
+        return result
+
+    def __readfile(self, file_path: str) -> str:
+
+        try:
+
+            with open(file_path) as f:
+                return f.read()
+
+        except OSError as e:
+            print("File:", file_path)
+            print("Error:", e.strerror)
+            sys.exit(1)
+
+        return ""
+
+    def __writefile(self, file_path: str, content: str) -> None:
+
+        try:
+            with open(file_path, "w") as f:
+                f.write(content)
+        except OSError as e:
+            print("File:", file_path)
+            print("Error:", e.strerror)
+            sys.exit(1)
 
     # def test(self):
     #     from .test import test

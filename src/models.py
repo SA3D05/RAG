@@ -122,12 +122,12 @@ class Recall:
         self,
         results: list[MinimalSearchResults],
         ground_truth: dict[str, list[MinimalSource]],
-    ) -> list[dict]:
+    ) -> dict:
         recalls = {
-            1: 0,
-            3: 0,
-            5: 0,
-            10: 0,
+            1: 0.0,
+            3: 0.0,
+            5: 0.0,
+            10: 0.0,
         }
         for question_result in results:
             truth_source = ground_truth[question_result.question_id][0]
