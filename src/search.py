@@ -1,39 +1,65 @@
 import json
-from pydantic import TypeAdapter
+import sys
+from pydantic import TypeAdapter, ValidationError
 from .enums import PathInfo, DocumentType
-from .models import MinimalSource, Tokenizer
+from .models import MinimalSource, Tokenizer, FileOP
 
 
 class Retrieval:
     def __init__(self) -> None:
+        self.__get_parsed_attrs()
 
-        with open(PathInfo.DOCS_CHUNKS.value) as f:
+    def __get_parsed_attrs(self):
+        current_file = ""
+        try:
+            current_file = PathInfo.DOCS_CHUNKS.value
             self.docs_chunks = TypeAdapter(list[MinimalSource]).validate_json(
-                f.read()
+                FileOP.readfile(current_file)
             )
 
-        with open(PathInfo.DOCS_TF.value) as f:
-            self.docs_tf = json.load(f)
+            current_file = PathInfo.DOCS_TF.value
+            self.docs_tf = json.loads(FileOP.readfile(current_file))
 
-        with open(PathInfo.DOCS_IDF.value) as f:
-            self.docs_idf = json.load(f)
+            current_file = PathInfo.DOCS_IDF.value
+            self.docs_idf = json.loads(FileOP.readfile(current_file))
 
-        with open(PathInfo.DOCS_AVGDL.value) as f:
-            self.docs_avgdl = json.load(f)["avgdl"]
+            current_file = PathInfo.DOCS_AVGDL.value
+            self.docs_avgdl = json.loads(FileOP.readfile(current_file))[
+                "avgdl"
+            ]
 
-        with open(PathInfo.CODE_CHUNKS.value) as f:
+            current_file = PathInfo.CODE_CHUNKS.value
             self.code_chunks = TypeAdapter(list[MinimalSource]).validate_json(
-                f.read()
+                FileOP.readfile(current_file)
             )
 
-        with open(PathInfo.CODE_TF.value) as f:
-            self.code_tf = json.load(f)
+            current_file = PathInfo.CODE_TF.value
+            self.code_tf = json.loads(FileOP.readfile(current_file))
 
-        with open(PathInfo.CODE_IDF.value) as f:
-            self.code_idf = json.load(f)
+            current_file = PathInfo.CODE_IDF.value
+            self.code_idf = json.loads(FileOP.readfile(current_file))
 
-        with open(PathInfo.CODE_AVGDL.value) as f:
-            self.code_avgdl = json.load(f)["avgdl"]
+            current_file = PathInfo.CODE_AVGDL.value
+            self.code_avgdl = json.loads(FileOP.readfile(current_file))[
+                "avgdl"
+            ]
+
+        except ValidationError as e:
+            print("File:", current_file)
+            for error in e.errors():
+                msg = error["msg"]
+                print(msg)
+            sys.exit(1)
+
+        except json.decoder.JSONDecodeError as e:
+            print("File:", current_file)
+            print(e)
+            sys.exit(1)
+
+        except KeyError as e:
+            print("File:", current_file)
+            print("Error: Expecting field", e)
+            sys.exit(1)
 
     def search(
         self, query: str, k: int, query_type: DocumentType
@@ -64,10 +90,20 @@ class Retrieval:
 
             for chunk_id, tf_value in token_frequency.items():
 
+                doc_len = self.docs_chunks[int(chunk_id)].tokens_len
+
+                if doc_len is None:
+                    print("File:", PathInfo.DOCS_CHUNKS.value)
+                    print(
+                        "Error: missing 'tokens_len' field in chunk index:",
+                        chunk_id,
+                    )
+                    sys.exit(1)
+
                 chunk_score = self.__score_chunk(
                     tf_value,
                     inverse_document_frequency,
-                    self.docs_chunks[int(chunk_id)].tokens_len,
+                    doc_len,
                     self.docs_avgdl,
                 )
 
@@ -104,10 +140,20 @@ class Retrieval:
 
             for chunk_id, tf_value in token_frequency.items():
 
+                doc_len = self.code_chunks[int(chunk_id)].tokens_len
+
+                if doc_len is None:
+                    print("File:", PathInfo.CODE_CHUNKS.value)
+                    print(
+                        "Error: missing 'tokens_len' field in chunk index:",
+                        chunk_id,
+                    )
+                    sys.exit(1)
+
                 chunk_score = self.__score_chunk(
                     tf_value,
                     inverse_document_frequency,
-                    self.code_chunks[int(chunk_id)].tokens_len,
+                    doc_len,
                     self.code_avgdl,
                 )
 

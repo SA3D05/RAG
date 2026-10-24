@@ -1,6 +1,8 @@
 import ast
 import json
 import math
+from pathlib import Path
+import sys
 
 from tqdm import tqdm
 import tree_sitter_python
@@ -8,37 +10,75 @@ from collections import Counter
 from tree_sitter import Language, Parser
 
 from .enums import DocumentType, PathInfo, Statics
-from .models import MinimalSource, Tokenizer
+from .models import MinimalSource, Tokenizer, FileOP
 
 
 class Indexer:
 
     @classmethod
     def index(cls, max_chunk_size: int) -> None:
-
         print("chunking ...")
-        code_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.py")]
-        docs_paths = [p for p in PathInfo.RAW_DATA.value.rglob("*.md")]
-        docs_paths.extend([p for p in PathInfo.RAW_DATA.value.rglob("*.txt")])
+        raw_data = Path("data/raw")
+        cls.__check_files(raw_data)
 
+        code_paths = [p for p in raw_data.rglob("*.py")]
+        docs_paths = [p for p in raw_data.rglob("*.md")]
+        docs_paths.extend([p for p in raw_data.rglob("*.txt")])
+
+        if not any([code_paths, docs_paths]):
+            print("Nothing to chunk!")
+            return
         with tqdm(total=len(docs_paths) + len(code_paths)) as pbar:
             code_chunks, docs_chunks = cls.__chunk(
                 max_chunk_size, docs_paths + code_paths, pbar
             )
 
+        docs_index = None
+        code_index = None
         print("indexing ...")
         with tqdm(total=len(code_chunks) + len(docs_chunks)) as pbar:
-            docs_index = cls.__get_chunks_index(docs_chunks, pbar)
-            code_index = cls.__get_chunks_index(code_chunks, pbar)
+            if docs_chunks:
+                docs_index = cls.__get_chunks_index(docs_chunks, pbar)
+            if code_chunks:
+                code_index = cls.__get_chunks_index(code_chunks, pbar)
 
         print("saving ...")
-        with tqdm(total=8) as pbar:
-            cls.__save_index(docs_chunks, docs_index, DocumentType.DOCS, pbar)
-            cls.__save_index(code_chunks, code_index, DocumentType.CODE, pbar)
+        total = 0
+        if docs_index:
+            total += 4
+        if code_index:
+            total += 4
+
+        with tqdm(total=total) as pbar:
+            if docs_index:
+                cls.__save_index(
+                    docs_chunks, docs_index, DocumentType.DOCS, pbar
+                )
+            if code_index:
+                cls.__save_index(
+                    code_chunks, code_index, DocumentType.CODE, pbar
+                )
+
+    @classmethod
+    def __check_files(cls, raw_data: Path):
+        file_path = ""
+
+        if not raw_data.is_dir():
+            print(f"Error: '{raw_data}' not found")
+            sys.exit(1)
+        try:
+            for p in PathInfo:
+                file_path = p.value
+                with open(file_path, "w") as f:
+                    pass
+        except OSError as e:
+            print("File:", file_path)
+            print("Error:", e.strerror)
+            sys.exit(1)
 
     @classmethod
     def __get_chunks_index(cls, chunks: list[MinimalSource], pbar) -> dict:
-        tf: dict[str, dict[int, int]] = {}
+        tf: dict[str, dict[str, int]] = {}
         idf = {}
 
         current_path = ""
@@ -67,7 +107,7 @@ class Indexer:
                 if token not in tf:
                     tf[token] = {}
 
-                tf[token][chunk.id] = frequency
+                tf[token][str(chunk.id)] = frequency
             pbar.update(1)
 
         avgdl = total_tokens_count / chunks_len
@@ -99,23 +139,26 @@ class Indexer:
             idf_path = PathInfo.CODE_IDF.value
             chunks_path = PathInfo.CODE_CHUNKS.value
 
-        with open(avgdl_path, "w") as f:
-            json.dump({"avgdl": index["avgdl"]}, f, indent=4)
+        FileOP.writefile(
+            str(avgdl_path),
+            json.dumps({"avgdl": index["avgdl"]}, indent=4),
+            pbar,
+        )
         pbar.update(1)
 
-        with open(
-            tf_path,
-            "w",
-        ) as f:
-            json.dump(index["tf"], f, indent=4)
+        FileOP.writefile(str(tf_path), json.dumps(index["tf"], indent=4), pbar)
         pbar.update(1)
 
-        with open(idf_path, "w") as f:
-            json.dump(index["idf"], f, indent=4)
+        FileOP.writefile(
+            str(idf_path), json.dumps(index["idf"], indent=4), pbar
+        )
         pbar.update(1)
 
-        with open(chunks_path, "w") as f:
-            json.dump([chunk.model_dump() for chunk in chunks], f, indent=4)
+        FileOP.writefile(
+            str(chunks_path),
+            json.dumps([chunk.model_dump() for chunk in chunks], indent=4),
+            pbar,
+        )
         pbar.update(1)
 
     @classmethod
@@ -209,7 +252,6 @@ class Indexer:
 
         code_chunks_objs: list[MinimalSource] = []
         docs_chunks_objs: list[MinimalSource] = []
-
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
         code_id = 0

@@ -1,6 +1,4 @@
-import json
 from pathlib import Path
-from pprint import pprint
 import sys
 from fire import Fire
 from tqdm import tqdm
@@ -10,9 +8,9 @@ from .enums import DocumentType, Statics
 from .search import Retrieval
 from .index import Indexer
 from .models import (
-    AnsweredQuestion,
     RagDataset,
     Recall,
+    FileOP,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
     UnansweredQuestion,
@@ -45,11 +43,10 @@ class Rag:
         ]
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
-        file_path = Path(dataset_path)  # $(DATA_SETS)/UnansweredQuestions/
+        file_path = Path(dataset_path)
         retrieval = Retrieval()
-
         questions = RagDataset.model_validate_json(
-            self.__readfile(dataset_path)
+            FileOP.readfile(dataset_path)
         ).rag_questions
 
         results: StudentSearchResults = StudentSearchResults(
@@ -81,7 +78,7 @@ class Rag:
                     )
                 )
 
-        self.__writefile(
+        FileOP.writefile(
             save_directory + "/" + file_path.name,
             results.model_dump_json(indent=4),
         )
@@ -92,7 +89,7 @@ class Rag:
         source_path = Path(student_search_results_path)
 
         content = StudentSearchResults.model_validate_json(
-            self.__readfile(student_search_results_path)
+            FileOP.readfile(student_search_results_path)
         )
 
         model = Model()  # type: ignore
@@ -105,7 +102,7 @@ class Rag:
                 result.search_results.append(answer)
                 pbar.update(1)
 
-        self.__writefile(
+        FileOP.writefile(
             save_directory + "/" + source_path.name,
             result.model_dump_json(indent=4),
         )
@@ -114,10 +111,10 @@ class Rag:
         # Recall@k = (Number of queries with target in top-k) / (Total queries)
 
         results = StudentSearchResults.model_validate_json(
-            self.__readfile(student_search_results_path)
+            FileOP.readfile(student_search_results_path)
         )
 
-        dataset = RagDataset.model_validate_json(self.__readfile(dataset_path))
+        dataset = RagDataset.model_validate_json(FileOP.readfile(dataset_path))
 
         ground_truth = {
             answer.question_id: answer.sources  # type: ignore Cannot access attribute "sources" for class "UnansweredQuestion"
@@ -129,33 +126,12 @@ class Rag:
         result = {f"recall@{k}": v for k, v in recalls.items()}
         return result
 
-    def __readfile(self, file_path: str) -> str:
-
-        try:
-
-            with open(file_path) as f:
-                return f.read()
-
-        except OSError as e:
-            print("File:", file_path)
-            print("Error:", e.strerror)
-            sys.exit(1)
-
-        return ""
-
-    def __writefile(self, file_path: str, content: str) -> None:
-
-        try:
-            with open(file_path, "w") as f:
-                f.write(content)
-        except OSError as e:
-            print("File:", file_path)
-            print("Error:", e.strerror)
-            sys.exit(1)
-
     # def test(self):
     #     from .test import test
 
 
 if __name__ == "__main__":
+    # try:
     Fire(Rag)
+    # except BaseException:
+    #     print("Exit program")

@@ -1,3 +1,6 @@
+import sys
+from typing import Any
+
 from pydantic import BaseModel, Field
 import uuid
 import re
@@ -143,3 +146,31 @@ class Recall:
             recalls[k] = v / results_len
 
         return recalls
+
+
+class FileOP:
+
+    @staticmethod
+    def readfile(file_path: str, pbar: Any = None) -> str:
+        try:
+            with open(file_path) as f:
+                return f.read()
+        except OSError as e:
+            if pbar is not None:
+                pbar.close()
+            print("\nFile:", file_path)
+            print("Error:", e.strerror)
+            sys.exit(1)
+        return ""
+
+    @staticmethod
+    def writefile(file_path: str, content: str, pbar: Any = None) -> None:
+        try:
+            with open(file_path, "w") as f:
+                f.write(content)
+        except OSError as e:
+            if pbar is not None:
+                pbar.close()
+            print("\nFile:", file_path)
+            print("Error:", e.strerror)
+            sys.exit(1)
