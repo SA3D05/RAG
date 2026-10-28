@@ -1,7 +1,7 @@
 import sys
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 import uuid
 import re
 
@@ -48,6 +48,10 @@ class AnsweredQuestion(UnansweredQuestion):
 
 class RagDataset(BaseModel):
     rag_questions: list[AnsweredQuestion | UnansweredQuestion]
+
+
+class RagDatasetRecall(BaseModel):
+    rag_questions: list[AnsweredQuestion]
 
 
 class MinimalSearchResults(BaseModel):
@@ -153,7 +157,7 @@ class FileOP:
     @staticmethod
     def readfile(file_path: str, pbar: Any = None) -> str:
         try:
-            with open(file_path) as f:
+            with open(str(file_path)) as f:
                 return f.read()
         except OSError as e:
             if pbar is not None:
@@ -173,4 +177,18 @@ class FileOP:
                 pbar.close()
             print("\nFile:", file_path)
             print("Error:", e.strerror)
+            sys.exit(1)
+
+    @staticmethod
+    def get_pydantic_model(file_path: str, obj: Any) -> Any:
+        content = FileOP.readfile(file_path)
+        try:
+            return obj.model_validate_json(content)
+
+        except ValidationError as e:
+            print("File:", file_path)
+            for error in e.errors():
+                msg = error["msg"]
+                print("Error:", msg)
+
             sys.exit(1)

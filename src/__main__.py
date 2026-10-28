@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 from fire import Fire
+from pydantic import ValidationError
 from tqdm import tqdm
 
 # from .generation import Model
@@ -9,6 +10,7 @@ from .search import Retrieval
 from .index import Indexer
 from .models import (
     RagDataset,
+    RagDatasetRecall,
     Recall,
     FileOP,
     StudentSearchResults,
@@ -21,32 +23,63 @@ from .models import (
 class Rag:
 
     def index(self, max_chunk_size=2000):
+
         min_size, overlap_size = (
             Statics.CODE_MIN_CHUNK_SIZE.value,
             Statics.DOCS_OVERLAP_SIZE.value,
         )
-        if max_chunk_size <= overlap_size:
-            print(f"'max_chunk_size' cannot be less \
-                    than overlap size '{overlap_size}'")
-            sys.exit()
-        elif max_chunk_size <= min_size:
-            print(f"'max_chunk_size' cannot be less \
-                    than min_chunk_size size '{min_size}'")
-            sys.exit()
+
+        try:
+
+            if max_chunk_size > 2000:
+                raise ValueError(f"'max_chunk_size' grater than 2000")
+            if max_chunk_size <= overlap_size:
+                raise ValueError(
+                    f"'max_chunk_size' cannot be less than overlap size {overlap_size}"
+                )
+            elif max_chunk_size <= min_size:
+                raise ValueError(
+                    f"'max_chunk_size' cannot be less than min_chunk_size size {min_size}"
+                )
+
+        except ValueError as e:
+            print("Error:", e)
+            sys.exit(1)
+
         Indexer.index(max_chunk_size)
 
     def search(self, query: str, k: int):
+        try:
+            int(k)
+        except ValueError:
+            print(
+                "Error:",
+                f"Invalid 'k' value '{k}'",
+            )
+            sys.exit(1)
+
         retrieval = Retrieval()
         return [
             result.model_dump_json()
-            for result in retrieval.search(query, k, DocumentType.DOCS)
+            for result in retrieval.search(str(query), k, DocumentType.DOCS)
         ]
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
-        file_path = Path(dataset_path)
+        try:
+            int(k)
+        except ValueError:
+            print(
+                "Error:",
+                f"Invalid 'k' value '{k}'",
+            )
+            sys.exit(1)
+
+        output_path = Path(str(save_directory))
+        file_path = Path(str(dataset_path))
         retrieval = Retrieval()
-        questions = RagDataset.model_validate_json(
-            FileOP.readfile(dataset_path)
+
+        questions = FileOP.get_pydantic_model(
+            dataset_path, RagDataset
         ).rag_questions
 
         results: StudentSearchResults = StudentSearchResults(
@@ -79,7 +112,7 @@ class Rag:
                 )
 
         FileOP.writefile(
-            save_directory + "/" + file_path.name,
+            str(output_path) + "/" + file_path.name,
             results.model_dump_json(indent=4),
         )
 
@@ -87,7 +120,6 @@ class Rag:
         self, student_search_results_path: str, save_directory: str
     ):
         source_path = Path(student_search_results_path)
-
         content = StudentSearchResults.model_validate_json(
             FileOP.readfile(student_search_results_path)
         )
@@ -114,10 +146,12 @@ class Rag:
             FileOP.readfile(student_search_results_path)
         )
 
-        dataset = RagDataset.model_validate_json(FileOP.readfile(dataset_path))
+        dataset = RagDatasetRecall.model_validate_json(
+            FileOP.readfile(dataset_path)
+        )
 
         ground_truth = {
-            answer.question_id: answer.sources  # type: ignore Cannot access attribute "sources" for class "UnansweredQuestion"
+            answer.question_id: answer.sources
             for answer in dataset.rag_questions
         }
 
