@@ -59,10 +59,13 @@ class Rag:
             sys.exit(1)
 
         retrieval = Retrieval()
-        return [
+        result = [
             result.model_dump_json()
             for result in retrieval.search(str(query), k, DocumentType.DOCS)
         ]
+        if not result:
+            print("No result was found!")
+        return result
 
     def search_dataset(self, dataset_path: str, k: int, save_directory: str):
         try:
@@ -120,8 +123,9 @@ class Rag:
         self, student_search_results_path: str, save_directory: str
     ):
         source_path = Path(student_search_results_path)
-        content = StudentSearchResults.model_validate_json(
-            FileOP.readfile(student_search_results_path)
+
+        content = FileOP.get_pydantic_model(
+            student_search_results_path, StudentSearchResults
         )
 
         model = Model()  # type: ignore
@@ -142,13 +146,11 @@ class Rag:
     def evaluate(self, student_search_results_path: str, dataset_path: str):
         # Recall@k = (Number of queries with target in top-k) / (Total queries)
 
-        results = StudentSearchResults.model_validate_json(
-            FileOP.readfile(student_search_results_path)
+        results = FileOP.get_pydantic_model(
+            student_search_results_path, StudentSearchResults
         )
 
-        dataset = RagDatasetRecall.model_validate_json(
-            FileOP.readfile(dataset_path)
-        )
+        dataset = FileOP.get_pydantic_model(dataset_path, RagDatasetRecall)
 
         ground_truth = {
             answer.question_id: answer.sources
@@ -160,12 +162,9 @@ class Rag:
         result = {f"recall@{k}": v for k, v in recalls.items()}
         return result
 
-    # def test(self):
-    #     from .test import test
-
 
 if __name__ == "__main__":
-    # try:
-    Fire(Rag)
-    # except BaseException:
-    #     print("Exit program")
+    try:
+        Fire(Rag)
+    except KeyboardInterrupt:
+        print("Exit program")

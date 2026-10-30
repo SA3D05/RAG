@@ -14,14 +14,7 @@ class Statics(Enum):
 
 class PathInfo(Enum):
 
-    CODE_TF = "data/processed/code_term_frequency.json"
-    CODE_IDF = "data/processed/code_inverse_document_frequency.json"
-
-    CODE_AVGDL = "data/processed/code_average_document_length.json"
-    CODE_CHUNKS = "data/processed/code_chunks.json"
-
-    DOCS_TF = "data/processed/docs_term_frequency.json"
-    DOCS_IDF = "data/processed/docs_inverse_document_frequency.json"
-
-    DOCS_AVGDL = "data/processed/docs_average_document_length.json"
-    DOCS_CHUNKS = "data/processed/docs_chunks.json"
+    CHUNKS_PATH = "data/processed/chunks.json"
+    TF_PATH = "data/processed/term_frequency.json"
+    IDF_PATH = "data/processed/inverse_document_frequency.json"
+    AVGDL_PATH = "data/processed/average_document_length.json"

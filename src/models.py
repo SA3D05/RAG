@@ -74,6 +74,26 @@ class StudentSearchResultsAndAnswer(BaseModel):
     k: int
 
 
+class AvrageDocumentLengthCache(BaseModel):
+    docs_avgdl: float
+    code_avgdl: float
+
+
+class ChunksCache(BaseModel):
+    docs_chunks: list[MinimalSource]
+    code_chunks: list[MinimalSource]
+
+
+class InverseDocumentFrequencyCache(BaseModel):
+    docs_idf: dict[str, float]
+    code_idf: dict[str, float]
+
+
+class TermFrequencyCache(BaseModel):
+    docs_tf: dict[str, dict[str, int]]
+    code_tf: dict[str, dict[str, int]]
+
+
 class Recall:
     def __init__(self) -> None:
         self.min_iou = 0.05
@@ -187,8 +207,12 @@ class FileOP:
 
         except ValidationError as e:
             print("File:", file_path)
-            for error in e.errors():
-                msg = error["msg"]
-                print("Error:", msg)
+            print(
+                "Error:",
+                f"file content must be a valid '{obj.__name__}' Model",
+            )
+            # for error in e.errors():
+            #     msg = error["msg"]
+            print(e)
 
             sys.exit(1)

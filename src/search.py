@@ -2,7 +2,15 @@ import json
 import sys
 from pydantic import TypeAdapter, ValidationError
 from .enums import PathInfo, DocumentType
-from .models import MinimalSource, Tokenizer, FileOP
+from .models import (
+    MinimalSource,
+    Tokenizer,
+    FileOP,
+    ChunksCache,
+    TermFrequencyCache,
+    InverseDocumentFrequencyCache,
+    AvrageDocumentLengthCache,
+)
 
 
 class Retrieval:
@@ -12,48 +20,35 @@ class Retrieval:
     def __get_parsed_attrs(self):
         current_file = ""
         try:
-            current_file = PathInfo.DOCS_CHUNKS.value
-            self.docs_chunks = TypeAdapter(list[MinimalSource]).validate_json(
+            current_file = PathInfo.CHUNKS_PATH.value
+            self.chunks = ChunksCache.model_validate_json(
                 FileOP.readfile(current_file)
             )
 
-            current_file = PathInfo.DOCS_TF.value
-            self.docs_tf = json.loads(FileOP.readfile(current_file))
-
-            current_file = PathInfo.DOCS_IDF.value
-            self.docs_idf = json.loads(FileOP.readfile(current_file))
-
-            current_file = PathInfo.DOCS_AVGDL.value
-            self.docs_avgdl = json.loads(FileOP.readfile(current_file))[
-                "avgdl"
-            ]
-
-            current_file = PathInfo.CODE_CHUNKS.value
-            self.code_chunks = TypeAdapter(list[MinimalSource]).validate_json(
+            current_file = PathInfo.TF_PATH.value
+            self.term_frequency = TermFrequencyCache.model_validate_json(
                 FileOP.readfile(current_file)
             )
 
-            current_file = PathInfo.CODE_TF.value
-            self.code_tf = json.loads(FileOP.readfile(current_file))
+            current_file = PathInfo.IDF_PATH.value
+            self.inverse_document_frequency = (
+                InverseDocumentFrequencyCache.model_validate_json(
+                    FileOP.readfile(current_file)
+                )
+            )
 
-            current_file = PathInfo.CODE_IDF.value
-            self.code_idf = json.loads(FileOP.readfile(current_file))
-
-            current_file = PathInfo.CODE_AVGDL.value
-            self.code_avgdl = json.loads(FileOP.readfile(current_file))[
-                "avgdl"
-            ]
+            current_file = PathInfo.AVGDL_PATH.value
+            self.avrage_document_length = (
+                AvrageDocumentLengthCache.model_validate_json(
+                    FileOP.readfile(current_file)
+                )
+            )
 
         except ValidationError as e:
             print("File:", current_file)
             for error in e.errors():
                 msg = error["msg"]
                 print(msg)
-            sys.exit(1)
-
-        except json.decoder.JSONDecodeError as e:
-            print("File:", current_file)
-            print(e)
             sys.exit(1)
 
         except KeyError as e:
@@ -82,18 +77,22 @@ class Retrieval:
 
         for token in query_tokens:
 
-            if token not in self.docs_idf:  # skip unknown tokens in query
+            if (
+                token not in self.inverse_document_frequency.docs_idf
+            ):  # skip unknown tokens in query
                 continue
 
-            token_frequency = self.docs_tf[token]
-            inverse_document_frequency = self.docs_idf[token]
+            token_frequency = self.term_frequency.docs_tf[token]
+            inverse_document_frequency = (
+                self.inverse_document_frequency.docs_idf[token]
+            )
 
             for chunk_id, tf_value in token_frequency.items():
 
-                doc_len = self.docs_chunks[int(chunk_id)].tokens_len
+                doc_len = self.chunks.docs_chunks[int(chunk_id)].tokens_len
 
                 if doc_len is None:
-                    print("File:", PathInfo.DOCS_CHUNKS.value)
+                    print("File:", PathInfo.CHUNKS_PATH.value)
                     print(
                         "Error: missing 'tokens_len' field in chunk index:",
                         chunk_id,
@@ -104,7 +103,7 @@ class Retrieval:
                     tf_value,
                     inverse_document_frequency,
                     doc_len,
-                    self.docs_avgdl,
+                    self.avrage_document_length.docs_avgdl,
                 )
 
                 current_score = 0
@@ -120,7 +119,7 @@ class Retrieval:
 
         for id in top_relevant_ids:
 
-            chunk = self.docs_chunks[int(id)]
+            chunk = self.chunks.docs_chunks[int(id)]
             result.append(chunk)
 
         return result
@@ -132,18 +131,22 @@ class Retrieval:
         result: list[MinimalSource] = []
         for token in query_tokens:
 
-            if token not in self.code_idf:  # skip unknown tokens in query
+            if (
+                token not in self.inverse_document_frequency.code_idf
+            ):  # skip unknown tokens in query
                 continue
 
-            token_frequency = self.code_tf[token]
-            inverse_document_frequency = self.code_idf[token]
+            token_frequency = self.term_frequency.code_tf[token]
+            inverse_document_frequency = (
+                self.inverse_document_frequency.code_idf[token]
+            )
 
             for chunk_id, tf_value in token_frequency.items():
 
-                doc_len = self.code_chunks[int(chunk_id)].tokens_len
+                doc_len = self.chunks.code_chunks[int(chunk_id)].tokens_len
 
                 if doc_len is None:
-                    print("File:", PathInfo.CODE_CHUNKS.value)
+                    print("File:", PathInfo.CHUNKS_PATH.value)
                     print(
                         "Error: missing 'tokens_len' field in chunk index:",
                         chunk_id,
@@ -154,7 +157,7 @@ class Retrieval:
                     tf_value,
                     inverse_document_frequency,
                     doc_len,
-                    self.code_avgdl,
+                    self.avrage_document_length.code_avgdl,
                 )
 
                 current_score = 0
@@ -170,7 +173,7 @@ class Retrieval:
 
         for id in top_relevant_ids:
 
-            chunk = self.code_chunks[int(id)]
+            chunk = self.chunks.code_chunks[int(id)]
             result.append(chunk)
 
         return result

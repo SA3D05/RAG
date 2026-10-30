@@ -37,27 +37,18 @@ class Indexer:
         code_index = None
         print("indexing ...")
         with tqdm(total=len(code_chunks) + len(docs_chunks)) as pbar:
-            if docs_chunks:
-                docs_index = cls.__get_chunks_index(docs_chunks, pbar)
-            if code_chunks:
-                code_index = cls.__get_chunks_index(code_chunks, pbar)
+            docs_index = cls.__get_chunks_index(docs_chunks, pbar)
+            code_index = cls.__get_chunks_index(code_chunks, pbar)
 
         print("saving ...")
-        total = 0
-        if docs_index:
-            total += 4
-        if code_index:
-            total += 4
-
-        with tqdm(total=total) as pbar:
-            if docs_index:
-                cls.__save_index(
-                    docs_chunks, docs_index, DocumentType.DOCS, pbar
-                )
-            if code_index:
-                cls.__save_index(
-                    code_chunks, code_index, DocumentType.CODE, pbar
-                )
+        with tqdm(total=8) as pbar:
+            cls.__save_index(
+                docs_chunks,
+                code_chunks,
+                docs_index,
+                code_index,
+                pbar,
+            )
 
     @classmethod
     def __check_files(cls, raw_data: Path):
@@ -104,59 +95,80 @@ class Indexer:
 
             for token, frequency in tokens_frequency.items():
 
-                if token not in tf:
-                    tf[token] = {}
+                tf.setdefault(token, {})
 
                 tf[token][str(chunk.id)] = frequency
+
             pbar.update(1)
 
         avgdl = total_tokens_count / chunks_len
 
         for token in tf:
-            idf[token] = math.log(
-                chunks_len / len(tf[token]),
-            )
+            idf[token] = math.log(chunks_len / len(tf[token]))
+
         return {"tf": tf, "idf": idf, "avgdl": avgdl}
 
     @classmethod
     def __save_index(
         cls,
-        chunks: list[MinimalSource],
-        index: dict,
-        document_type: DocumentType,
+        docs_chunks: list[MinimalSource],
+        code_chunks: list[MinimalSource],
+        docs_index: dict,
+        code_index: dict,
         pbar,
     ):
 
-        if document_type == DocumentType.DOCS:
-            avgdl_path = PathInfo.DOCS_AVGDL.value
-            tf_path = PathInfo.DOCS_TF.value
-            idf_path = PathInfo.DOCS_IDF.value
-            chunks_path = PathInfo.DOCS_CHUNKS.value
-
-        else:
-            avgdl_path = PathInfo.CODE_AVGDL.value
-            tf_path = PathInfo.CODE_TF.value
-            idf_path = PathInfo.CODE_IDF.value
-            chunks_path = PathInfo.CODE_CHUNKS.value
+        avgdl_path = PathInfo.AVGDL_PATH.value
+        tf_path = PathInfo.TF_PATH.value
+        idf_path = PathInfo.IDF_PATH.value
+        chunks_path = PathInfo.CHUNKS_PATH.value
 
         FileOP.writefile(
             str(avgdl_path),
-            json.dumps({"avgdl": index["avgdl"]}, indent=4),
+            json.dumps(
+                {
+                    "docs_avgdl": docs_index["avgdl"],
+                    "code_avgdl": code_index["avgdl"],
+                },
+                indent=4,
+            ),
             pbar,
         )
         pbar.update(1)
 
-        FileOP.writefile(str(tf_path), json.dumps(index["tf"], indent=4), pbar)
+        FileOP.writefile(
+            str(tf_path),
+            json.dumps(
+                {"docs_tf": docs_index["tf"], "code_tf": code_index["tf"]},
+                indent=4,
+            ),
+            pbar,
+        )
         pbar.update(1)
 
         FileOP.writefile(
-            str(idf_path), json.dumps(index["idf"], indent=4), pbar
+            str(idf_path),
+            json.dumps(
+                {"docs_idf": docs_index["idf"], "code_idf": code_index["idf"]},
+                indent=4,
+            ),
+            pbar,
         )
         pbar.update(1)
 
         FileOP.writefile(
             str(chunks_path),
-            json.dumps([chunk.model_dump() for chunk in chunks], indent=4),
+            json.dumps(
+                {
+                    "docs_chunks": [
+                        chunk.model_dump() for chunk in docs_chunks
+                    ],
+                    "code_chunks": [
+                        chunk.model_dump() for chunk in code_chunks
+                    ],
+                },
+                indent=4,
+            ),
             pbar,
         )
         pbar.update(1)
