@@ -3,59 +3,76 @@ import json
 import math
 from pathlib import Path
 import sys
+from typing import Any
 
 from tqdm import tqdm
 import tree_sitter_python
 from collections import Counter
 from tree_sitter import Language, Parser
 
-from .enums import DocumentType, PathInfo, Statics
-from .models import MinimalSource, Tokenizer, FileOP
+from .enums import PathInfo, Statics
+from .models import (
+    AvrageDocumentLengthCache,
+    ChunksCache,
+    InverseDocumentFrequencyCache,
+    MinimalSource,
+    TermFrequencyCache,
+    Tokenizer,
+    FileOP,
+)
 
 
 class Indexer:
 
-    @classmethod
-    def index(cls, max_chunk_size: int) -> None:
-        print("chunking ...")
-        raw_data = Path("data/raw")
-        cls.__check_files(raw_data)
+    def __init__(self, raw_data_path: Path, max_chunk_size: int) -> None:
+        self.raw_data_path = raw_data_path
+        self.max_chunk_size = max_chunk_size
 
-        code_paths = [p for p in raw_data.rglob("*.py")]
-        docs_paths = [p for p in raw_data.rglob("*.md")]
-        docs_paths.extend([p for p in raw_data.rglob("*.txt")])
+        self.target_files_types = ["py", "txt", "md"]
 
-        if not any([code_paths, docs_paths]):
+        self.index_result: dict[str, Any] = {
+            "docs_tf": None,
+            "docs_idf": None,
+            "docs_avgdl": None,
+            "code_tf": None,
+            "code_idf": None,
+            "code_avgdl": None,
+        }
+
+        self.code_chunks: list[MinimalSource] = []
+        self.docs_chunks: list[MinimalSource] = []
+
+        self.target_paths = []
+
+        self.__set_target_paths()
+
+    def __set_target_paths(self):
+
+        for file_pattern in self.target_files_types:
+            self.target_paths.extend(
+                [p for p in self.raw_data_path.rglob("*." + file_pattern)]
+            )
+
+    def index(self) -> None:
+
+        self.__check_files()
+
+        if not self.target_paths:
             print("Nothing to chunk!")
+            self.__save_index()
             return
-        with tqdm(total=len(docs_paths) + len(code_paths)) as pbar:
-            code_chunks, docs_chunks = cls.__chunk(
-                max_chunk_size, docs_paths + code_paths, pbar
-            )
 
-        docs_index = None
-        code_index = None
-        print("indexing ...")
-        with tqdm(total=len(code_chunks) + len(docs_chunks)) as pbar:
-            docs_index = cls.__get_chunks_index(docs_chunks, pbar)
-            code_index = cls.__get_chunks_index(code_chunks, pbar)
+        self.code_chunks, self.docs_chunks = self.__chunk()
 
-        print("saving ...")
-        with tqdm(total=8) as pbar:
-            cls.__save_index(
-                docs_chunks,
-                code_chunks,
-                docs_index,
-                code_index,
-                pbar,
-            )
+        self.__set_index_from_chunks()
 
-    @classmethod
-    def __check_files(cls, raw_data: Path):
+        self.__save_index()
+
+    def __check_files(self):
         file_path = ""
 
-        if not raw_data.is_dir():
-            print(f"Error: '{raw_data}' not found")
+        if not self.raw_data_path.is_dir():
+            print(f"Error: '{self.raw_data_path}' not found")
             sys.exit(1)
         try:
             for p in PathInfo:
@@ -67,114 +84,93 @@ class Indexer:
             print("Error:", e.strerror)
             sys.exit(1)
 
-    @classmethod
-    def __get_chunks_index(cls, chunks: list[MinimalSource], pbar) -> dict:
-        tf: dict[str, dict[str, int]] = {}
-        idf = {}
+    def __set_index_from_chunks(self) -> None:
 
-        current_path = ""
-        file_content = ""
-        chunk_content = ""
-        total_tokens_count = 0
-        chunks_len = len(chunks)
+        print("indexing ...")
+        with tqdm(total=len(self.code_chunks) + len(self.docs_chunks)) as pbar:
+            for chunk_type in ("docs", "code"):
+                chunks: list[MinimalSource] = getattr(
+                    self, chunk_type + "_chunks"
+                )
+                tf: dict[str, dict[str, int]] = {}
+                idf = {}
 
-        for chunk in chunks:
-            if current_path != chunk.file_path:
-                current_path = chunk.file_path
-                with open(chunk.file_path) as f:
-                    file_content = f.read()
+                current_path = ""
+                file_content = ""
+                chunk_content = ""
+                total_tokens_count = 0
+                chunks_len = len(chunks)
 
-            chunk_content = file_content[
-                chunk.first_character_index : chunk.last_character_index + 1
-            ]
+                for chunk in chunks:
+                    if current_path != chunk.file_path:
+                        current_path = chunk.file_path
+                        with open(chunk.file_path) as f:
+                            file_content = f.read()
 
-            tokens = Tokenizer.tokenize(chunk_content + " " + current_path)
-            chunk.tokens_len = len(tokens)
-            tokens_frequency = Counter(tokens)
-            total_tokens_count += len(tokens)
+                    chunk_content = file_content[
+                        chunk.first_character_index : chunk.last_character_index
+                        + 1
+                    ]
 
-            for token, frequency in tokens_frequency.items():
+                    tokens = Tokenizer.tokenize(
+                        chunk_content + " " + current_path
+                    )
+                    chunk.tokens_len = len(tokens)
+                    tokens_frequency = Counter(tokens)
+                    total_tokens_count += len(tokens)
 
-                tf.setdefault(token, {})
+                    for token, frequency in tokens_frequency.items():
 
-                tf[token][str(chunk.id)] = frequency
+                        tf.setdefault(token, {})
 
-            pbar.update(1)
+                        tf[token][str(chunk.id)] = frequency
 
-        avgdl = total_tokens_count / chunks_len
+                    pbar.update(1)
 
-        for token in tf:
-            idf[token] = math.log(chunks_len / len(tf[token]))
+                avgdl = total_tokens_count / chunks_len
 
-        return {"tf": tf, "idf": idf, "avgdl": avgdl}
+                for token in tf:
+                    idf[token] = math.log(chunks_len / len(tf[token]))
 
-    @classmethod
-    def __save_index(
-        cls,
-        docs_chunks: list[MinimalSource],
-        code_chunks: list[MinimalSource],
-        docs_index: dict,
-        code_index: dict,
-        pbar,
-    ):
+                self.index_result.update(
+                    {
+                        f"{chunk_type}_tf": tf,
+                        f"{chunk_type}_idf": idf,
+                        f"{chunk_type}_avgdl": avgdl,
+                    }
+                )
 
-        avgdl_path = PathInfo.AVGDL_PATH.value
-        tf_path = PathInfo.TF_PATH.value
-        idf_path = PathInfo.IDF_PATH.value
-        chunks_path = PathInfo.CHUNKS_PATH.value
+    def __save_index(self):
 
-        FileOP.writefile(
-            str(avgdl_path),
-            json.dumps(
-                {
-                    "docs_avgdl": docs_index["avgdl"],
-                    "code_avgdl": code_index["avgdl"],
-                },
-                indent=4,
-            ),
-            pbar,
-        )
-        pbar.update(1)
+        print("saving ...")
+        with tqdm(total=4) as pbar:
+            avgdl = AvrageDocumentLengthCache(
+                docs_avgdl=self.index_result["docs_avgdl"],
+                code_avgdl=self.index_result["code_avgdl"],
+            )
+            tf = TermFrequencyCache(
+                docs_tf=self.index_result["docs_tf"],
+                code_tf=self.index_result["code_tf"],
+            )
 
-        FileOP.writefile(
-            str(tf_path),
-            json.dumps(
-                {"docs_tf": docs_index["tf"], "code_tf": code_index["tf"]},
-                indent=4,
-            ),
-            pbar,
-        )
-        pbar.update(1)
+            idf = InverseDocumentFrequencyCache(
+                docs_idf=self.index_result["docs_idf"],
+                code_idf=self.index_result["code_idf"],
+            )
+            chunks = ChunksCache(
+                docs_chunks=None if not self.docs_chunks else self.docs_chunks,
+                code_chunks=None if not self.code_chunks else self.code_chunks,
+            )
 
-        FileOP.writefile(
-            str(idf_path),
-            json.dumps(
-                {"docs_idf": docs_index["idf"], "code_idf": code_index["idf"]},
-                indent=4,
-            ),
-            pbar,
-        )
-        pbar.update(1)
+            for obj, path in zip([chunks, tf, idf, avgdl], PathInfo):
+                FileOP.writefile(
+                    str(path.value),
+                    obj.model_dump_json(indent=4),
+                    pbar,
+                )
+                pbar.update(1)
 
-        FileOP.writefile(
-            str(chunks_path),
-            json.dumps(
-                {
-                    "docs_chunks": [
-                        chunk.model_dump() for chunk in docs_chunks
-                    ],
-                    "code_chunks": [
-                        chunk.model_dump() for chunk in code_chunks
-                    ],
-                },
-                indent=4,
-            ),
-            pbar,
-        )
-        pbar.update(1)
-
-    @classmethod
-    def __chunk_docs(cls, content, path, max_chunk_size: int, id):
+    def __chunk_docs(self, content, path, id):
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
@@ -182,8 +178,9 @@ class Indexer:
         content_len = len(content)
         start_idx = 0
         end_idx = 0
+
         while start_idx <= content_len:
-            end_idx = min(start_idx + max_chunk_size, content_len) - 1
+            end_idx = min(start_idx + self.max_chunk_size, content_len) - 1
             chunks_objs.append(
                 MinimalSource(
                     id=id,
@@ -193,28 +190,30 @@ class Indexer:
                     tokens_len=0,
                 )
             )
-            start_idx += max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value
+            start_idx += self.max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value
             id += 1
 
         return chunks_objs
 
-    @classmethod
-    def __chunk_code(
-        cls, tree, max_chunk_size, id_counter, path
-    ) -> list[MinimalSource]:
+    def __chunk_code(self, tree, id_counter, path) -> list[MinimalSource]:
         chunks_objs: list[MinimalSource] = []
         start_byte = -1
         end_byte = -1
         range_size = -1
 
-        def add_chunk():
+        def add_chunk(is_last: bool = False):
             nonlocal id_counter
+            nonlocal end_byte
             chunks_objs.append(
                 MinimalSource(
                     id=id_counter,
                     file_path=str(path),
                     first_character_index=start_byte,
-                    last_character_index=start_byte + max_chunk_size,
+                    last_character_index=(
+                        end_byte - 1
+                        if is_last
+                        else start_byte + self.max_chunk_size
+                    ),
                     tokens_len=0,
                 )
             )
@@ -227,8 +226,8 @@ class Indexer:
             nonlocal id_counter
 
             add_chunk()
-            start_byte += max_chunk_size
-            range_size -= max_chunk_size
+            start_byte += self.max_chunk_size
+            range_size -= self.max_chunk_size
 
         for child in tree.root_node.children:
 
@@ -239,7 +238,7 @@ class Indexer:
 
             range_size = end_byte - start_byte
 
-            while range_size > max_chunk_size:
+            while range_size > self.max_chunk_size:
                 size_big()
             if range_size < Statics.CODE_MIN_CHUNK_SIZE.value:
                 continue
@@ -251,42 +250,46 @@ class Indexer:
 
             range_size = end_byte - start_byte
 
-            while range_size > max_chunk_size:
+            while range_size > self.max_chunk_size:
                 size_big()
             if range_size > 0:
-                add_chunk()
+                add_chunk(True)
         return chunks_objs
 
-    @classmethod
-    def __chunk(
-        cls, max_chunk_size: int, paths, pbar
-    ) -> tuple[list[MinimalSource], list[MinimalSource]]:
+    def __chunk(self) -> tuple[list[MinimalSource], list[MinimalSource]]:
+
+        print("chunking ...")
 
         code_chunks_objs: list[MinimalSource] = []
         docs_chunks_objs: list[MinimalSource] = []
+
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
         code_id = 0
         docs_id = 0
-        for path in paths:
-            with open(path) as f:
-                content = f.read()
-                try:
-                    ast.parse(content)
-                    tree = parser.parse(content.encode())
-                    current_chunks = cls.__chunk_code(
-                        tree, max_chunk_size, code_id, path
-                    )
-                    code_id += len(current_chunks)
-                    code_chunks_objs.extend(current_chunks)
 
-                except SyntaxError:
-                    current_chunks = cls.__chunk_docs(
-                        content, path, max_chunk_size, docs_id
-                    )
-                    docs_id += len(current_chunks)
-                    docs_chunks_objs.extend(current_chunks)
+        with tqdm(total=len(self.target_paths)) as pbar:
 
-            pbar.update(1)
+            for path in self.target_paths:
+                with open(path) as f:
+                    content = f.read()
+                    if not content:
+                        pbar.update(1)
+                        continue
 
-        return (code_chunks_objs, docs_chunks_objs)
+                    if path.suffix != ".py":
+                        tree = parser.parse(content.encode())
+                        current_chunks = self.__chunk_code(tree, code_id, path)
+                        code_id += len(current_chunks)
+                        code_chunks_objs.extend(current_chunks)
+
+                    else:
+                        current_chunks = self.__chunk_docs(
+                            content, path, docs_id
+                        )
+                        docs_id += len(current_chunks)
+                        docs_chunks_objs.extend(current_chunks)
+
+                pbar.update(1)
+
+        return (docs_chunks_objs, code_chunks_objs)

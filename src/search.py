@@ -1,6 +1,5 @@
-import json
 import sys
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 from .enums import PathInfo, DocumentType
 from .models import (
     MinimalSource,
@@ -15,45 +14,43 @@ from .models import (
 
 class Retrieval:
     def __init__(self) -> None:
+        self.chunks: ChunksCache
+        self.term_frequency: TermFrequencyCache
+        self.inverse_document_frequency: InverseDocumentFrequencyCache
+        self.avrage_document_length: AvrageDocumentLengthCache
         self.__get_parsed_attrs()
 
     def __get_parsed_attrs(self):
         current_file = ""
+
         try:
             current_file = PathInfo.CHUNKS_PATH.value
-            self.chunks = ChunksCache.model_validate_json(
-                FileOP.readfile(current_file)
-            )
 
-            current_file = PathInfo.TF_PATH.value
-            self.term_frequency = TermFrequencyCache.model_validate_json(
-                FileOP.readfile(current_file)
-            )
-
-            current_file = PathInfo.IDF_PATH.value
-            self.inverse_document_frequency = (
-                InverseDocumentFrequencyCache.model_validate_json(
-                    FileOP.readfile(current_file)
+            for attr, path in zip(
+                [
+                    ("chunks", ChunksCache),
+                    ("term_frequency", TermFrequencyCache),
+                    (
+                        "inverse_document_frequency",
+                        InverseDocumentFrequencyCache,
+                    ),
+                    ("avrage_document_length", AvrageDocumentLengthCache),
+                ],
+                PathInfo,
+            ):
+                attr_name, attr_type = attr
+                current_file = path
+                setattr(
+                    self,
+                    attr_name,
+                    FileOP.get_pydantic_model(path.value, attr_type),
                 )
-            )
-
-            current_file = PathInfo.AVGDL_PATH.value
-            self.avrage_document_length = (
-                AvrageDocumentLengthCache.model_validate_json(
-                    FileOP.readfile(current_file)
-                )
-            )
 
         except ValidationError as e:
             print("File:", current_file)
             for error in e.errors():
-                msg = error["msg"]
-                print(msg)
-            sys.exit(1)
-
-        except KeyError as e:
-            print("File:", current_file)
-            print("Error: Expecting field", e)
+                print("*" * 100)
+                print(error)
             sys.exit(1)
 
     def search(
@@ -74,6 +71,14 @@ class Retrieval:
     ) -> list[MinimalSource]:
         scores = {}
         result: list[MinimalSource] = []
+
+        if (
+            self.inverse_document_frequency.docs_idf is None
+            or self.avrage_document_length.docs_avgdl is None
+            or self.term_frequency.docs_tf is None
+            or self.chunks.docs_chunks is None
+        ):
+            return []
 
         for token in query_tokens:
 
@@ -129,6 +134,14 @@ class Retrieval:
     ) -> list[MinimalSource]:
         scores = {}
         result: list[MinimalSource] = []
+
+        if (
+            self.inverse_document_frequency.code_idf is None
+            or self.avrage_document_length.code_avgdl is None
+            or self.term_frequency.code_tf is None
+            or self.chunks.code_chunks is None
+        ):
+            return []
         for token in query_tokens:
 
             if (

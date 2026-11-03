@@ -1,7 +1,7 @@
 import sys
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 import uuid
 import re
 
@@ -75,23 +75,24 @@ class StudentSearchResultsAndAnswer(BaseModel):
 
 
 class AvrageDocumentLengthCache(BaseModel):
-    docs_avgdl: float
-    code_avgdl: float
+    docs_avgdl: float | None
+    code_avgdl: float | None
 
 
 class ChunksCache(BaseModel):
-    docs_chunks: list[MinimalSource]
-    code_chunks: list[MinimalSource]
+
+    docs_chunks: Annotated[list[MinimalSource], Field(min_length=1)] | None
+    code_chunks: Annotated[list[MinimalSource], Field(min_length=1)] | None
 
 
 class InverseDocumentFrequencyCache(BaseModel):
-    docs_idf: dict[str, float]
-    code_idf: dict[str, float]
+    docs_idf: dict[str, float] | None
+    code_idf: dict[str, float] | None
 
 
 class TermFrequencyCache(BaseModel):
-    docs_tf: dict[str, dict[str, int]]
-    code_tf: dict[str, dict[str, int]]
+    docs_tf: dict[str, dict[str, int]] | None
+    code_tf: dict[str, dict[str, int]] | None
 
 
 class Recall:

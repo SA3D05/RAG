@@ -46,7 +46,9 @@ class Rag:
             print("Error:", e)
             sys.exit(1)
 
-        Indexer.index(max_chunk_size)
+        raw_data_path = Path("data/raw")
+        indexer = Indexer(raw_data_path, max_chunk_size)
+        indexer.index()
 
     def search(self, query: str, k: int):
         try:
