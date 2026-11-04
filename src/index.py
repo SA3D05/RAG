@@ -1,5 +1,3 @@
-import ast
-import json
 import math
 from pathlib import Path
 import sys
@@ -46,27 +44,22 @@ class Indexer:
 
         self.__set_target_paths()
 
+    def index(self) -> None:
+
+        self.__check_files()
+
+        self.__chunk()
+
+        self.__set_index_from_chunks()
+
+        self.__save_index()
+
     def __set_target_paths(self):
 
         for file_pattern in self.target_files_types:
             self.target_paths.extend(
                 [p for p in self.raw_data_path.rglob("*." + file_pattern)]
             )
-
-    def index(self) -> None:
-
-        self.__check_files()
-
-        if not self.target_paths:
-            print("Nothing to chunk!")
-            self.__save_index()
-            return
-
-        self.code_chunks, self.docs_chunks = self.__chunk()
-
-        self.__set_index_from_chunks()
-
-        self.__save_index()
 
     def __check_files(self):
         file_path = ""
@@ -78,11 +71,15 @@ class Indexer:
             for p in PathInfo:
                 file_path = p.value
                 with open(file_path, "w") as f:
-                    pass
+                    f.write("{}")
         except OSError as e:
             print("File:", file_path)
             print("Error:", e.strerror)
             sys.exit(1)
+
+        if not self.target_paths:
+            print("Nothing to chunk!")
+            sys.exit()
 
     def __set_index_from_chunks(self) -> None:
 
@@ -256,12 +253,9 @@ class Indexer:
                 add_chunk(True)
         return chunks_objs
 
-    def __chunk(self) -> tuple[list[MinimalSource], list[MinimalSource]]:
+    def __chunk(self) -> None:
 
         print("chunking ...")
-
-        code_chunks_objs: list[MinimalSource] = []
-        docs_chunks_objs: list[MinimalSource] = []
 
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
@@ -278,18 +272,18 @@ class Indexer:
                         continue
 
                     if path.suffix != ".py":
+                        # chunking docs
                         tree = parser.parse(content.encode())
                         current_chunks = self.__chunk_code(tree, code_id, path)
                         code_id += len(current_chunks)
-                        code_chunks_objs.extend(current_chunks)
+                        self.docs_chunks.extend(current_chunks)
 
                     else:
+                        # chunking code
                         current_chunks = self.__chunk_docs(
                             content, path, docs_id
                         )
                         docs_id += len(current_chunks)
-                        docs_chunks_objs.extend(current_chunks)
+                        self.code_chunks.extend(current_chunks)
 
                 pbar.update(1)
-
-        return (docs_chunks_objs, code_chunks_objs)
