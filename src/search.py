@@ -49,7 +49,6 @@ class Retrieval:
         except ValidationError as e:
             print("File:", current_file)
             for error in e.errors():
-                print("*" * 100)
                 print(error)
             sys.exit(1)
 
@@ -71,14 +70,6 @@ class Retrieval:
     ) -> list[MinimalSource]:
         scores = {}
         result: list[MinimalSource] = []
-
-        if (
-            self.inverse_document_frequency.docs_idf is None
-            or self.avrage_document_length.docs_avgdl is None
-            or self.term_frequency.docs_tf is None
-            or self.chunks.docs_chunks is None
-        ):
-            return []
 
         for token in query_tokens:
 
@@ -135,13 +126,6 @@ class Retrieval:
         scores = {}
         result: list[MinimalSource] = []
 
-        if (
-            self.inverse_document_frequency.code_idf is None
-            or self.avrage_document_length.code_avgdl is None
-            or self.term_frequency.code_tf is None
-            or self.chunks.code_chunks is None
-        ):
-            return []
         for token in query_tokens:
 
             if (

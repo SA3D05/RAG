@@ -1,7 +1,6 @@
 from pathlib import Path
 import sys
 from fire import Fire
-from pydantic import ValidationError
 from tqdm import tqdm
 
 # from .generation import Model
