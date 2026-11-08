@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 from pydantic import ValidationError
 from .enums import PathInfo, DocumentType
@@ -32,13 +33,18 @@ class Retrieval:
                 ),
                 ("avrage_document_length", AvrageDocumentLengthCache),
             ],
-            PathInfo,
+            [
+                PathInfo.CHUNKS_PATH.value,
+                PathInfo.TF_PATH.value,
+                PathInfo.IDF_PATH.value,
+                PathInfo.AVGDL_PATH.value,
+            ],
         ):
             attr_name, attr_type = attr
             setattr(
                 self,
                 attr_name,
-                Utils.get_pydantic_model(path.value, attr_type),
+                Utils.get_pydantic_model(Path(path), attr_type),
             )
 
     def search(
@@ -162,6 +168,9 @@ class Retrieval:
         doc_len: int,
         avgdl: float,
     ) -> float:
+        if avgdl <= 0:
+            return 0.0
+
         k1 = 1.5
         b = 0.75
 

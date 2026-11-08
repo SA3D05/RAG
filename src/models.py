@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 from typing import Any
 
@@ -136,7 +137,10 @@ class Recall:
         intersection = self.__get_intersection(truth_source, result_source)
         union = self.__get_union(truth_source, result_source)
 
-        if intersection / union > self.min_iou:
+        if union <= 0:
+            return False
+
+        if intersection > 0 and intersection / union > self.min_iou:
             return True
         return False
 
@@ -163,24 +167,43 @@ class Recall:
             5: 0.0,
             10: 0.0,
         }
+        evaluated_results = 0
         for question_result in results:
 
-            truth_source = ground_truth[question_result.question_id][0]
+            truth_sources = ground_truth.get(question_result.question_id, [])
+            if not truth_sources:
+                continue
+            evaluated_results += 1
+            truth_source = truth_sources[0]
             for k in recalls.keys():
 
                 if self.__is_found(
                     truth_source, question_result.retrieved_sources[:k]
                 ):
                     recalls[k] = recalls[k] + 1
-        results_len = len(results)
+        if evaluated_results == 0:
+            return recalls
 
         for k, v in recalls.items():
-            recalls[k] = v / results_len
+            recalls[k] = v / evaluated_results
 
         return recalls
 
 
 class Utils:
+
+    @staticmethod
+    def get_path(path: Any, is_dir: bool = False) -> Path:
+        try:
+            path = Path(str(path))
+            if is_dir:
+                path.mkdir(parents=True, exist_ok=True)
+            return path
+
+        except OSError as e:
+            Utils.write_err(f"File: {path}")
+            Utils.write_err(f"Error: {e.strerror}")
+            sys.exit(1)
 
     @staticmethod
     def write_log(msg: str):
@@ -198,8 +221,8 @@ class Utils:
 
             value = int(max_chunk_size)
 
-            if value > 2000:
-                raise ValueError(f"'max_chunk_size' grater than {max_size}")
+            if value > max_size:
+                raise ValueError(f"'max_chunk_size' greater than {max_size}")
 
             if value <= overlap_size:
                 raise ValueError(
@@ -213,7 +236,7 @@ class Utils:
 
             return value
 
-        except ValueError as e:
+        except (TypeError, ValueError) as e:
             Utils.write_err(f"Error: {e}")
             sys.exit(1)
 
@@ -226,21 +249,22 @@ class Utils:
                 raise ValueError()
             return k_value
 
-        except ValueError:
+        except (TypeError, ValueError):
             Utils.write_err(
                 f"Error: 'k' value must be a valid positive integer '{k}'",
             )
             sys.exit(1)
 
     @staticmethod
-    def readfile(file_path: str, pbar: Any = None) -> str:
+    def readfile(file_path: Path, pbar: Any = None) -> str:
         try:
-            with open(str(file_path)) as f:
+            with open(file_path) as f:
                 return f.read()
+
         except OSError as e:
             if pbar is not None:
                 pbar.close()
-            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(f"File: {str(file_path)}")
             Utils.write_err(f"Error: {e.strerror}")
             sys.exit(1)
         return ""
@@ -258,13 +282,13 @@ class Utils:
             sys.exit(1)
 
     @staticmethod
-    def get_pydantic_model(file_path: str, obj: Any) -> Any:
+    def get_pydantic_model(file_path: Path, obj: Any) -> Any:
         content = Utils.readfile(file_path)
         try:
             return obj.model_validate_json(content)
 
         except ValidationError as e:
-            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(f"File: {str(file_path)}")
             Utils.write_err(
                 f"Error: file content must be a valid '{obj.__name__}' Model"
             )

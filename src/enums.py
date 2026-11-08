@@ -18,3 +18,4 @@ class PathInfo(Enum):
     TF_PATH = "data/processed/term_frequency.json"
     IDF_PATH = "data/processed/inverse_document_frequency.json"
     AVGDL_PATH = "data/processed/average_document_length.json"
+    RAW_DATA = "data/raw"

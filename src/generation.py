@@ -36,7 +36,7 @@ class Model:
         with open(source.file_path) as f:
             content = f.read()
         first, last = source.first_character_index, source.last_character_index
-        return content[first:last]
+        return content[first : last + 1]
 
     def generate(self, search_result: MinimalSearchResults) -> MinimalAnswer:
         context = "\n".join(

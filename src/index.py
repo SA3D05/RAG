@@ -192,7 +192,7 @@ class Indexer:
         start_idx = 0
         end_idx = 0
 
-        while start_idx <= content_len:
+        while start_idx < content_len:
             end_idx = min(start_idx + self.max_chunk_size, content_len) - 1
             chunks_objs.append(
                 MinimalSource(
@@ -275,16 +275,16 @@ class Indexer:
                         pbar.update(1)
                     continue
 
-                if path.suffix != ".py":
-                    # chunking docs
+                if path.suffix == ".py":
+                    # chunking code
                     tree = parser.parse(content.encode())
                     current_chunks = self.__chunk_code(tree, path)
-                    self.docs_chunks.extend(current_chunks)
+                    self.code_chunks.extend(current_chunks)
 
                 else:
-                    # chunking code
+                    # chunking docs
                     current_chunks = self.__chunk_docs(content, path)
-                    self.code_chunks.extend(current_chunks)
+                    self.docs_chunks.extend(current_chunks)
 
             if pbar is not None:
                 pbar.update(1)
