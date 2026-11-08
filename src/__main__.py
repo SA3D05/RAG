@@ -1,17 +1,18 @@
 from pathlib import Path
 import sys
+from typing import Any
 from fire import Fire
 from tqdm import tqdm
 
 # from .generation import Model
-from .enums import DocumentType, Statics
+from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
 from .models import (
     RagDataset,
     RagDatasetRecall,
     Recall,
-    FileOP,
+    Utils,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
     UnansweredQuestion,
@@ -21,90 +22,60 @@ from .models import (
 
 class Rag:
 
-    def index(self, max_chunk_size=2000):
+    def index(self, max_chunk_size: Any = 2000):
 
-        min_size, overlap_size = (
-            Statics.CODE_MIN_CHUNK_SIZE.value,
-            Statics.DOCS_OVERLAP_SIZE.value,
-        )
-
-        try:
-
-            if max_chunk_size > 2000:
-                raise ValueError(f"'max_chunk_size' grater than 2000")
-            if max_chunk_size <= overlap_size:
-                raise ValueError(
-                    f"'max_chunk_size' cannot be less than overlap size {overlap_size}"
-                )
-            elif max_chunk_size <= min_size:
-                raise ValueError(
-                    f"'max_chunk_size' cannot be less than min_chunk_size size {min_size}"
-                )
-
-        except ValueError as e:
-            print("Error:", e)
-            sys.exit(1)
-
+        max_chunk_size_value = Utils.get_valid_max_chunk_size(max_chunk_size)
         raw_data_path = Path("data/raw")
-        indexer = Indexer(raw_data_path, max_chunk_size)
+        indexer = Indexer(raw_data_path, max_chunk_size_value)
         indexer.index()
 
-    def search(self, query: str, k: int):
-        try:
-            int(k)
-        except ValueError:
-            print(
-                "Error:",
-                f"Invalid 'k' value '{k}'",
-            )
-            sys.exit(1)
+    def search(self, query: Any, k: Any):
+        k_value = Utils.get_valid_k_value(k)
 
         retrieval = Retrieval()
         result = [
             result.model_dump_json()
-            for result in retrieval.search(str(query), k, DocumentType.DOCS)
+            for result in retrieval.search(
+                str(query), k_value, DocumentType.DOCS
+            )
         ]
+
         if not result:
-            print("No result was found!")
+            Utils.write_log("No result was found!")
+
         return result
 
-    def search_dataset(self, dataset_path: str, k: int, save_directory: str):
-        try:
-            int(k)
-        except ValueError:
-            print(
-                "Error:",
-                f"Invalid 'k' value '{k}'",
-            )
-            sys.exit(1)
+    def search_dataset(self, dataset_path: Any, k: Any, save_directory: Any):
 
+        k_value = Utils.get_valid_k_value(k)
         output_path = Path(str(save_directory))
         file_path = Path(str(dataset_path))
         retrieval = Retrieval()
 
-        questions = FileOP.get_pydantic_model(
+        questions = Utils.get_pydantic_model(
             dataset_path, RagDataset
         ).rag_questions
 
         results: StudentSearchResults = StudentSearchResults(
-            search_results=[], k=k
+            search_results=[], k=k_value
         )
-        print("retriving ...")
-        with tqdm(total=len(questions)) as pbar:
+
+        Utils.write_log("retriving ...")
+        with tqdm(total=len(questions), file=sys.stdout) as pbar:
             for quest in questions:
                 pbar.update(1)
 
                 if not isinstance(quest, UnansweredQuestion):
                     continue
 
-                if "docs" in file_path.name:
+                if "code" in file_path.name:
                     res = retrieval.search(
-                        quest.question, k, DocumentType.DOCS
+                        quest.question, k_value, DocumentType.CODE
                     )
 
                 else:
                     res = retrieval.search(
-                        quest.question, k, DocumentType.CODE
+                        quest.question, k_value, DocumentType.DOCS
                     )
 
                 results.search_results.append(
@@ -115,17 +86,17 @@ class Rag:
                     )
                 )
 
-        FileOP.writefile(
+        Utils.writefile(
             str(output_path) + "/" + file_path.name,
             results.model_dump_json(indent=4),
         )
 
     def answer_dataset(
-        self, student_search_results_path: str, save_directory: str
+        self, student_search_results_path: Any, save_directory: Any
     ):
         source_path = Path(student_search_results_path)
 
-        content = FileOP.get_pydantic_model(
+        content = Utils.get_pydantic_model(
             student_search_results_path, StudentSearchResults
         )
 
@@ -133,25 +104,22 @@ class Rag:
         result: StudentSearchResultsAndAnswer = StudentSearchResultsAndAnswer(
             search_results=[], k=content.k
         )
-        with tqdm(total=len(content.search_results)) as pbar:
+        with tqdm(total=len(content.search_results), file=sys.stdout) as pbar:
             for search_result in content.search_results:
                 answer = model.generate(search_result)
                 result.search_results.append(answer)
                 pbar.update(1)
 
-        FileOP.writefile(
+        Utils.writefile(
             save_directory + "/" + source_path.name,
             result.model_dump_json(indent=4),
         )
 
-    def evaluate(self, student_search_results_path: str, dataset_path: str):
-        # Recall@k = (Number of queries with target in top-k) / (Total queries)
-
-        results = FileOP.get_pydantic_model(
+    def evaluate(self, student_search_results_path: Any, dataset_path: Any):
+        results = Utils.get_pydantic_model(
             student_search_results_path, StudentSearchResults
         )
-
-        dataset = FileOP.get_pydantic_model(dataset_path, RagDatasetRecall)
+        dataset = Utils.get_pydantic_model(dataset_path, RagDatasetRecall)
 
         ground_truth = {
             answer.question_id: answer.sources
@@ -165,7 +133,9 @@ class Rag:
 
 
 if __name__ == "__main__":
+
     try:
         Fire(Rag)
+
     except KeyboardInterrupt:
-        print("Exit program")
+        Utils.write_err("Exit program")

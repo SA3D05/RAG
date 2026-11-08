@@ -4,7 +4,7 @@ from .enums import PathInfo, DocumentType
 from .models import (
     MinimalSource,
     Tokenizer,
-    FileOP,
+    Utils,
     ChunksCache,
     TermFrequencyCache,
     InverseDocumentFrequencyCache,
@@ -21,36 +21,25 @@ class Retrieval:
         self.__get_parsed_attrs()
 
     def __get_parsed_attrs(self):
-        current_file = ""
 
-        try:
-            current_file = PathInfo.CHUNKS_PATH.value
-
-            for attr, path in zip(
-                [
-                    ("chunks", ChunksCache),
-                    ("term_frequency", TermFrequencyCache),
-                    (
-                        "inverse_document_frequency",
-                        InverseDocumentFrequencyCache,
-                    ),
-                    ("avrage_document_length", AvrageDocumentLengthCache),
-                ],
-                PathInfo,
-            ):
-                attr_name, attr_type = attr
-                current_file = path
-                setattr(
-                    self,
-                    attr_name,
-                    FileOP.get_pydantic_model(path.value, attr_type),
-                )
-
-        except ValidationError as e:
-            print("File:", current_file)
-            for error in e.errors():
-                print(error)
-            sys.exit(1)
+        for attr, path in zip(
+            [
+                ("chunks", ChunksCache),
+                ("term_frequency", TermFrequencyCache),
+                (
+                    "inverse_document_frequency",
+                    InverseDocumentFrequencyCache,
+                ),
+                ("avrage_document_length", AvrageDocumentLengthCache),
+            ],
+            PathInfo,
+        ):
+            attr_name, attr_type = attr
+            setattr(
+                self,
+                attr_name,
+                Utils.get_pydantic_model(path.value, attr_type),
+            )
 
     def search(
         self, query: str, k: int, query_type: DocumentType
@@ -86,14 +75,6 @@ class Retrieval:
             for chunk_id, tf_value in token_frequency.items():
 
                 doc_len = self.chunks.docs_chunks[int(chunk_id)].tokens_len
-
-                if doc_len is None:
-                    print("File:", PathInfo.CHUNKS_PATH.value)
-                    print(
-                        "Error: missing 'tokens_len' field in chunk index:",
-                        chunk_id,
-                    )
-                    sys.exit(1)
 
                 chunk_score = self.__score_chunk(
                     tf_value,
@@ -143,10 +124,9 @@ class Retrieval:
                 doc_len = self.chunks.code_chunks[int(chunk_id)].tokens_len
 
                 if doc_len is None:
-                    print("File:", PathInfo.CHUNKS_PATH.value)
-                    print(
-                        "Error: missing 'tokens_len' field in chunk index:",
-                        chunk_id,
+                    Utils.write_err(f"File: {PathInfo.CHUNKS_PATH.value}")
+                    Utils.write_err(
+                        f"Error: missing 'tokens_len' field in chunk index: {chunk_id}",
                     )
                     sys.exit(1)
 

@@ -1,9 +1,11 @@
 import sys
-from typing import Annotated, Any
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 import uuid
 import re
+
+from .enums import Statics
 
 
 class Tokenizer:
@@ -29,11 +31,10 @@ class Tokenizer:
 
 
 class MinimalSource(BaseModel):
-    id: int | None = None
     file_path: str
     first_character_index: int
     last_character_index: int
-    tokens_len: int | None = None
+    tokens_len: int = 0
 
 
 class UnansweredQuestion(BaseModel):
@@ -50,8 +51,13 @@ class RagDataset(BaseModel):
     rag_questions: list[AnsweredQuestion | UnansweredQuestion]
 
 
+class AnsweredQuestionRecall(AnsweredQuestion):
+    sources: list[MinimalSource] = Field(min_length=1)
+    answer: str
+
+
 class RagDatasetRecall(BaseModel):
-    rag_questions: list[AnsweredQuestion]
+    rag_questions: list[AnsweredQuestionRecall]
 
 
 class MinimalSearchResults(BaseModel):
@@ -158,6 +164,7 @@ class Recall:
             10: 0.0,
         }
         for question_result in results:
+
             truth_source = ground_truth[question_result.question_id][0]
             for k in recalls.keys():
 
@@ -173,7 +180,57 @@ class Recall:
         return recalls
 
 
-class FileOP:
+class Utils:
+
+    @staticmethod
+    def write_log(msg: str):
+        print(msg, file=sys.stdout)
+
+    @staticmethod
+    def write_err(msg: str):
+        print(msg, file=sys.stderr)
+
+    @staticmethod
+    def get_valid_max_chunk_size(max_chunk_size: Any) -> int:
+        try:
+
+            min_size, overlap_size, max_size = (size.value for size in Statics)
+
+            value = int(max_chunk_size)
+
+            if value > 2000:
+                raise ValueError(f"'max_chunk_size' grater than {max_size}")
+
+            if value <= overlap_size:
+                raise ValueError(
+                    f"'max_chunk_size' cannot be less than or equal to overlap size {overlap_size}"
+                )
+
+            elif value <= min_size:
+                raise ValueError(
+                    f"'max_chunk_size' cannot be less than or equal to min_chunk_size size {min_size}"
+                )
+
+            return value
+
+        except ValueError as e:
+            Utils.write_err(f"Error: {e}")
+            sys.exit(1)
+
+    @staticmethod
+    def get_valid_k_value(k: Any) -> int:
+        try:
+
+            k_value = int(k)
+            if k_value <= 0:
+                raise ValueError()
+            return k_value
+
+        except ValueError:
+            Utils.write_err(
+                f"Error: 'k' value must be a valid positive integer '{k}'",
+            )
+            sys.exit(1)
 
     @staticmethod
     def readfile(file_path: str, pbar: Any = None) -> str:
@@ -183,8 +240,8 @@ class FileOP:
         except OSError as e:
             if pbar is not None:
                 pbar.close()
-            print("\nFile:", file_path)
-            print("Error:", e.strerror)
+            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(f"Error: {e.strerror}")
             sys.exit(1)
         return ""
 
@@ -196,24 +253,21 @@ class FileOP:
         except OSError as e:
             if pbar is not None:
                 pbar.close()
-            print("\nFile:", file_path)
-            print("Error:", e.strerror)
+            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(f"Error: {e.strerror}")
             sys.exit(1)
 
     @staticmethod
     def get_pydantic_model(file_path: str, obj: Any) -> Any:
-        content = FileOP.readfile(file_path)
+        content = Utils.readfile(file_path)
         try:
             return obj.model_validate_json(content)
 
         except ValidationError as e:
-            print("File:", file_path)
-            print(
-                "Error:",
-                f"file content must be a valid '{obj.__name__}' Model",
+            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(
+                f"Error: file content must be a valid '{obj.__name__}' Model"
             )
-            # for error in e.errors():
-            #     msg = error["msg"]
-            print(e)
+            Utils.write_err(str(e))
 
             sys.exit(1)

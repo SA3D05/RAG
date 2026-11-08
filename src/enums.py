@@ -1,5 +1,4 @@
 from enum import Enum, auto
-from pathlib import Path
 
 
 class DocumentType(Enum):
@@ -10,6 +9,7 @@ class DocumentType(Enum):
 class Statics(Enum):
     CODE_MIN_CHUNK_SIZE = 500
     DOCS_OVERLAP_SIZE = 300
+    GLOBAL_MAX_CHUNK_SIZE = 2000
 
 
 class PathInfo(Enum):

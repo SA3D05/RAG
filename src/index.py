@@ -16,7 +16,7 @@ from .models import (
     MinimalSource,
     TermFrequencyCache,
     Tokenizer,
-    FileOP,
+    Utils,
 )
 
 
@@ -48,23 +48,25 @@ class Indexer:
 
         self.__check_files()
 
-        print("chunking ...")
-        with tqdm(total=len(self.target_paths)) as pbar:
+        Utils.write_log("chunking ...")
+        with tqdm(total=len(self.target_paths), file=sys.stdout) as pbar:
             self.__chunk(pbar)
 
         docs_chunks_len = len(self.docs_chunks)
         code_chunks_len = len(self.code_chunks)
 
         if docs_chunks_len + code_chunks_len == 0:
-            print("Nothing to index!")
+            Utils.write_log("Nothing to index!")
             sys.exit()
 
-        print("indexing ...")
-        with tqdm(total=docs_chunks_len + code_chunks_len) as pbar:
+        Utils.write_log("indexing ...")
+        with tqdm(
+            total=docs_chunks_len + code_chunks_len, file=sys.stdout
+        ) as pbar:
             self.__set_index_from_chunks(pbar)
 
-        print("saving ...")
-        with tqdm(total=4) as pbar:
+        Utils.write_log("saving ...")
+        with tqdm(total=4, file=sys.stdout) as pbar:
             self.__save_index(pbar)
 
     def __set_target_paths(self):
@@ -78,21 +80,23 @@ class Indexer:
         file_path = ""
 
         if not self.raw_data_path.is_dir():
-            print(f"Error: '{self.raw_data_path}' not found")
+            Utils.write_err(f"Error: '{self.raw_data_path}' not found")
             sys.exit(1)
         try:
+
             for p in PathInfo:
                 file_path = p.value
                 with open(file_path, "w") as f:
                     pass
             self.__save_index()
         except OSError as e:
-            print("File:", file_path)
-            print("Error:", e.strerror)
+
+            Utils.write_err(f"File: {file_path}")
+            Utils.write_err(f"Error: {e.strerror}")
             sys.exit(1)
 
         if not self.target_paths:
-            print("Nothing to chunk!")
+            Utils.write_log("Nothing to chunk!")
             sys.exit()
 
     def __set_index_from_chunks(self, pbar=None) -> None:
@@ -112,7 +116,7 @@ class Indexer:
             total_tokens_count = 0
             chunks_len = len(chunks)
 
-            for chunk in chunks:
+            for chunk_idx, chunk in enumerate(chunks):
                 if current_path != chunk.file_path:
                     current_path = chunk.file_path
                     with open(chunk.file_path) as f:
@@ -132,7 +136,7 @@ class Indexer:
 
                     tf.setdefault(token, {})
 
-                    tf[token][str(chunk.id)] = frequency
+                    tf[token][str(chunk_idx)] = frequency
 
                 if pbar is not None:
                     pbar.update(1)
@@ -171,7 +175,7 @@ class Indexer:
         )
 
         for obj, path in zip([chunks, tf, idf, avgdl], PathInfo):
-            FileOP.writefile(
+            Utils.writefile(
                 str(path.value),
                 obj.model_dump_json(indent=4),
                 pbar,
@@ -179,7 +183,7 @@ class Indexer:
             if pbar is not None:
                 pbar.update(1)
 
-    def __chunk_docs(self, content, path, id):
+    def __chunk_docs(self, content, path):
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
@@ -192,7 +196,6 @@ class Indexer:
             end_idx = min(start_idx + self.max_chunk_size, content_len) - 1
             chunks_objs.append(
                 MinimalSource(
-                    id=id,
                     file_path=str(path),
                     first_character_index=start_idx,
                     last_character_index=end_idx,
@@ -200,22 +203,19 @@ class Indexer:
                 )
             )
             start_idx += self.max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value
-            id += 1
 
         return chunks_objs
 
-    def __chunk_code(self, tree, id_counter, path) -> list[MinimalSource]:
+    def __chunk_code(self, tree, path) -> list[MinimalSource]:
         chunks_objs: list[MinimalSource] = []
         start_byte = -1
         end_byte = -1
         range_size = -1
 
         def add_chunk(is_last: bool = False):
-            nonlocal id_counter
             nonlocal end_byte
             chunks_objs.append(
                 MinimalSource(
-                    id=id_counter,
                     file_path=str(path),
                     first_character_index=start_byte,
                     last_character_index=(
@@ -226,13 +226,11 @@ class Indexer:
                     tokens_len=0,
                 )
             )
-            id_counter += 1
 
         def size_big():
             nonlocal start_byte
             nonlocal end_byte
             nonlocal range_size
-            nonlocal id_counter
 
             add_chunk()
             start_byte += self.max_chunk_size
@@ -269,9 +267,6 @@ class Indexer:
 
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
-        code_id = 0
-        docs_id = 0
-
         for path in self.target_paths:
             with open(path) as f:
                 content = f.read()
@@ -283,14 +278,12 @@ class Indexer:
                 if path.suffix != ".py":
                     # chunking docs
                     tree = parser.parse(content.encode())
-                    current_chunks = self.__chunk_code(tree, code_id, path)
-                    code_id += len(current_chunks)
+                    current_chunks = self.__chunk_code(tree, path)
                     self.docs_chunks.extend(current_chunks)
 
                 else:
                     # chunking code
-                    current_chunks = self.__chunk_docs(content, path, docs_id)
-                    docs_id += len(current_chunks)
+                    current_chunks = self.__chunk_docs(content, path)
                     self.code_chunks.extend(current_chunks)
 
             if pbar is not None:
