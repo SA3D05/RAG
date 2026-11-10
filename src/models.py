@@ -52,13 +52,8 @@ class RagDataset(BaseModel):
     rag_questions: list[AnsweredQuestion | UnansweredQuestion]
 
 
-class AnsweredQuestionRecall(AnsweredQuestion):
-    sources: list[MinimalSource] = Field(min_length=1)
-    answer: str
-
-
 class RagDatasetRecall(BaseModel):
-    rag_questions: list[AnsweredQuestionRecall]
+    rag_questions: list[AnsweredQuestion]
 
 
 class MinimalSearchResults(BaseModel):
@@ -169,8 +164,19 @@ class Recall:
         }
         evaluated_results = 0
         for question_result in results:
+            question_id = question_result.question_id
+            if question_id not in ground_truth:
+                print(f"The question_id {question_id} not fount!")
+                sys.exit()
 
-            truth_sources = ground_truth.get(question_result.question_id, [])
+            truth_sources = ground_truth[question_id]
+
+            if not truth_sources:
+                Utils.write_err(
+                    f"No object found for question_id {question_id}"
+                )
+                sys.exit()
+
             if not truth_sources:
                 continue
             evaluated_results += 1
@@ -193,11 +199,19 @@ class Recall:
 class Utils:
 
     @staticmethod
-    def get_path(path: Any, is_dir: bool = False) -> Path:
+    def get_path(
+        path: Any, is_dir: bool = False, create: bool = False
+    ) -> Path:
         try:
             path = Path(str(path))
-            if is_dir:
+            if create and is_dir:
+                print("create dir:", path)
                 path.mkdir(parents=True, exist_ok=True)
+
+            if not is_dir and create:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+
             return path
 
         except OSError as e:

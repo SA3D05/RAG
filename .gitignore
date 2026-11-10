@@ -3,11 +3,9 @@ __pycache__
 .venv
 .mypy_cache
 data
-test.py
-test_result.json
 result.md
 moulinette
 setuprag.sh
-test_make
 .vscode
 *.log
+*test*

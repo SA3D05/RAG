@@ -5,7 +5,7 @@ from fire import Fire
 from tqdm import tqdm
 
 # from .generation import Model
-from .enums import DocumentType, PathInfo
+from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
 from .models import (
@@ -22,11 +22,12 @@ from .models import (
 
 class Rag:
 
-    def index(self, max_chunk_size: Any = 2000):
+    def index(
+        self, max_chunk_size: Any = 2000, raw_data_path: Any = "data/raw"
+    ):
 
         max_chunk_size_value = Utils.get_valid_max_chunk_size(max_chunk_size)
-        raw_data_path = Path(PathInfo.RAW_DATA.value)
-        indexer = Indexer(raw_data_path, max_chunk_size_value)
+        indexer = Indexer(Utils.get_path(raw_data_path), max_chunk_size_value)
         indexer.index()
 
     def search(self, query: Any, k: Any):
@@ -45,7 +46,9 @@ class Rag:
 
         return result
 
-    def search_dataset(self, dataset_path: Any, k: Any, save_directory: Any):
+    def search_dataset(
+        self, dataset_path: Any, k: Any, save_directory: Any
+    ) -> None:
 
         k_value = Utils.get_valid_k_value(k)
 
