@@ -3,7 +3,7 @@ MAX_LENGTH=2000
 ACTION=index
 K=5
 
-run: index search grade test_grade
+run: index search grademe
 
 test_grade: grade grademe
 

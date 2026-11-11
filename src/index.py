@@ -103,9 +103,33 @@ class Indexer:
             tokens_frequency[token] = tokens.count(token)
         return tokens_frequency
 
+    def __update_term_frequency(
+        self,
+        chunk_idx: int,
+        chunk_tokens_frequency: dict[str, int],
+        term_frequency: dict[str, dict[str, int]],
+    ) -> None:
+
+        for token, frequency in chunk_tokens_frequency.items():
+
+            term_frequency.setdefault(token, {})
+            term_frequency[token][str(chunk_idx)] = frequency
+
+    def __update_inverse_document_frequency(
+        self,
+        term_frequency: dict[str, dict[str, int]],
+        inverse_document_frequency: dict[str, float],
+        chunks_len: int,
+    ) -> None:
+
+        for token, token_frequency in term_frequency.items():
+            inverse_document_frequency[token] = math.log2(
+                chunks_len / len(token_frequency)
+            )
+
     def __set_index_from_chunks(self, pbar=None) -> None:
 
-        for chunk_type in ("docs", "code"):
+        for chunk_type in ["docs", "code"]:
 
             chunks: list[MinimalSource] = getattr(self, chunk_type + "_chunks")
 
@@ -113,11 +137,10 @@ class Indexer:
                 continue
 
             term_frequency: dict[str, dict[str, int]] = {}
-            inverse_document_frequency = {}
+            inverse_document_frequency: dict[str, float] = {}
 
             current_path = ""
             file_content = ""
-            chunk_content = ""
             total_tokens_count = 0
             chunks_len = len(chunks)
 
@@ -125,9 +148,7 @@ class Indexer:
 
                 if current_path != chunk.file_path:
                     current_path = chunk.file_path
-
-                    with open(chunk.file_path) as f:
-                        file_content = f.read()
+                    file_content = Utils.readfile(Path(chunk.file_path), pbar)
 
                 chunk_content = file_content[
                     chunk.first_character_index : chunk.last_character_index
@@ -136,25 +157,20 @@ class Indexer:
 
                 tokens = Tokenizer.tokenize(chunk_content + " " + current_path)
                 tokens_frequency = self.__get_tokens_frequency(tokens)
+
                 chunk.tokens_len = len(tokens)
                 total_tokens_count += chunk.tokens_len
 
-                for token, frequency in tokens_frequency.items():
-
-                    term_frequency.setdefault(token, {})
-
-                    term_frequency[token][str(chunk_idx)] = frequency
-
+                self.__update_term_frequency(
+                    chunk_idx, tokens_frequency, term_frequency
+                )
                 if pbar is not None:
                     pbar.update(1)
 
             avgdl = total_tokens_count / chunks_len
-
-            for token in term_frequency:
-                inverse_document_frequency[token] = math.log(
-                    chunks_len / len(term_frequency[token])
-                )
-
+            self.__update_inverse_document_frequency(
+                term_frequency, inverse_document_frequency, chunks_len
+            )
             self.index_result.update(
                 {
                     f"{chunk_type}_tf": term_frequency,
@@ -163,7 +179,7 @@ class Indexer:
                 }
             )
 
-    def __save_index(self, pbar=None):
+    def __save_index(self, pbar: tqdm | None = None):
 
         avgdl = AvrageDocumentLengthCache(
             docs_avgdl=self.index_result["docs_avgdl"],
@@ -208,7 +224,11 @@ class Indexer:
                     tokens_len=0,
                 )
             )
-            start_idx += self.max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value
+            if end_idx == content_len - 1:
+                break
+            start_idx += (
+                self.max_chunk_size - Statics.DOCS_OVERLAP_SIZE.value - 1
+            )
 
         return chunks_objs
 
@@ -223,7 +243,7 @@ class Indexer:
                     MinimalSource(
                         file_path=str(path),
                         first_character_index=byte_map[buffer_start_byte],
-                        last_character_index=byte_map[end_byte],
+                        last_character_index=byte_map[end_byte] - 1,
                         tokens_len=0,
                     )
                 )
@@ -254,7 +274,7 @@ class Indexer:
                         MinimalSource(
                             file_path=str(path),
                             first_character_index=byte_map[child.start_byte],
-                            last_character_index=byte_map[child.end_byte],
+                            last_character_index=byte_map[child.end_byte] - 1,
                             tokens_len=0,
                         )
                     )
@@ -275,30 +295,29 @@ class Indexer:
         result[byte_idx] = len(content)
         return result
 
-    def __chunk(self, pbar=None) -> None:
+    def __chunk(self, pbar: tqdm | None = None) -> None:
 
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)
         for path in self.target_paths:
-            with open(path) as f:
-                content = f.read()
-                if not content:
-                    if pbar is not None:
-                        pbar.update(1)
-                    continue
+            content = Utils.readfile(path, pbar)
+            if not content:
+                if pbar is not None:
+                    pbar.update(1)
+                continue
 
-                if path.suffix == ".py":
-                    # chunking code
-                    encoded_content = content.encode()
-                    byte_map = self.__get_byte_map(content)
-                    tree = parser.parse(encoded_content)
-                    current_chunks = self.__chunk_code(tree, byte_map, path)
-                    self.code_chunks.extend(current_chunks)
+            if path.suffix == ".py":
+                # chunking code
+                encoded_content = content.encode()
+                byte_map = self.__get_byte_map(content)
+                tree = parser.parse(encoded_content)
+                current_chunks = self.__chunk_code(tree, byte_map, path)
+                self.code_chunks.extend(current_chunks)
 
-                else:
-                    # chunking docs
-                    current_chunks = self.__chunk_docs(content, path)
-                    self.docs_chunks.extend(current_chunks)
+            else:
+                # chunking docs
+                current_chunks = self.__chunk_docs(content, path)
+                self.docs_chunks.extend(current_chunks)
 
             if pbar is not None:
                 pbar.update(1)

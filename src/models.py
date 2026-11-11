@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, ValidationError
 import uuid
 import re
 
+from tqdm import tqdm
+
 from .enums import Statics
 
 
@@ -200,7 +202,10 @@ class Utils:
 
     @staticmethod
     def get_path(
-        path: Any, is_dir: bool = False, create: bool = False
+        path: Any,
+        is_dir: bool = False,
+        create: bool = False,
+        pbar: tqdm | None = None,
     ) -> Path:
         try:
             path = Path(str(path))
@@ -215,6 +220,10 @@ class Utils:
             return path
 
         except OSError as e:
+
+            if pbar is not None:
+                pbar.close()
+
             Utils.write_err(f"File: {path}")
             Utils.write_err(f"Error: {e.strerror}")
             sys.exit(1)
@@ -270,29 +279,42 @@ class Utils:
             sys.exit(1)
 
     @staticmethod
-    def readfile(file_path: Path, pbar: Any = None) -> str:
+    def readfile(file_path: Path, pbar: tqdm | None = None) -> str:
         try:
             with open(file_path) as f:
                 return f.read()
 
-        except OSError as e:
+        except (OSError, UnicodeDecodeError) as e:
             if pbar is not None:
                 pbar.close()
             Utils.write_err(f"File: {str(file_path)}")
-            Utils.write_err(f"Error: {e.strerror}")
+
+            if isinstance(e, OSError):
+                Utils.write_err(f"Error: {e.strerror}")
+            else:
+                Utils.write_err(f"Error: {e}")
             sys.exit(1)
-        return ""
 
     @staticmethod
-    def writefile(file_path: str, content: str, pbar: Any = None) -> None:
+    def writefile(
+        file_path: str, content: str, pbar: tqdm | None = None
+    ) -> None:
         try:
-            with open(file_path, "w") as f:
+            path = Utils.get_path(file_path, create=True, pbar=pbar)
+
+            with open(path, "w") as f:
                 f.write(content)
-        except OSError as e:
+
+        except (OSError, UnicodeDecodeError) as e:
             if pbar is not None:
                 pbar.close()
+
             Utils.write_err(f"File: {file_path}")
-            Utils.write_err(f"Error: {e.strerror}")
+
+            if isinstance(e, OSError):
+                Utils.write_err(f"Error: {e.strerror}")
+            else:
+                Utils.write_err(f"Error: {e}")
             sys.exit(1)
 
     @staticmethod

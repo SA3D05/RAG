@@ -27,7 +27,8 @@ class Rag:
     ):
 
         max_chunk_size_value = Utils.get_valid_max_chunk_size(max_chunk_size)
-        indexer = Indexer(Utils.get_path(raw_data_path), max_chunk_size_value)
+        path = Utils.get_path(raw_data_path)
+        indexer = Indexer(path, max_chunk_size_value)
         indexer.index()
 
     def search(self, query: Any, k: Any):

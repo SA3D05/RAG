@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from transformers import AutoTokenizer, pipeline
-from .models import MinimalAnswer, MinimalSearchResults, MinimalSource
+from .models import MinimalAnswer, MinimalSearchResults, MinimalSource, Utils
 
 
 class Model:
@@ -32,9 +34,7 @@ class Model:
         )
 
     def __get_chunk_str(self, source: MinimalSource):
-        content = ""
-        with open(source.file_path) as f:
-            content = f.read()
+        content = Utils.readfile(Path(source.file_path))
         first, last = source.first_character_index, source.last_character_index
         return content[first : last + 1]
 
