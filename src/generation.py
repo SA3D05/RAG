@@ -1,7 +1,8 @@
 from pathlib import Path
 
 from transformers import AutoTokenizer, pipeline
-from .models import MinimalAnswer, MinimalSearchResults, MinimalSource, Utils
+from .models import MinimalAnswer, MinimalSearchResults, MinimalSource
+from .utils import Utils
 
 
 class Model:

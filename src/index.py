@@ -6,14 +6,13 @@ from tqdm import tqdm
 import tree_sitter_python
 from tree_sitter import Language, Node, Parser, Tree
 from .enums import PathInfo, Statics
+from .utils import Utils
 from .models import (
     AvrageDocumentLengthCache,
     ChunksCache,
     InverseDocumentFrequencyCache,
     MinimalSource,
     TermFrequencyCache,
-    Tokenizer,
-    Utils,
 )
 
 
@@ -155,7 +154,7 @@ class Indexer:
                     + 1
                 ]
 
-                tokens = Tokenizer.tokenize(chunk_content + " " + current_path)
+                tokens = Utils.tokenize(chunk_content + " " + current_path)
                 tokens_frequency = self.__get_tokens_frequency(tokens)
 
                 chunk.tokens_len = len(tokens)

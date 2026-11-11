@@ -1,11 +1,9 @@
 from pathlib import Path
 import sys
-from pydantic import ValidationError
 from .enums import PathInfo, DocumentType
+from .utils import Utils
 from .models import (
     MinimalSource,
-    Tokenizer,
-    Utils,
     ChunksCache,
     TermFrequencyCache,
     InverseDocumentFrequencyCache,
@@ -52,11 +50,11 @@ class Retrieval:
     ) -> list[MinimalSource]:
 
         if query_type == DocumentType.DOCS:
-            query_tokens = Tokenizer.tokenize(query)
+            query_tokens = Utils.tokenize(query)
             result = self.__search_docs(query_tokens, k)
             return result
 
-        query_tokens = Tokenizer.tokenize(query)
+        query_tokens = Utils.tokenize(query)
         result = self.__search_code(query_tokens, k)
         return result
 

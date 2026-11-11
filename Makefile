@@ -1,4 +1,8 @@
 
+export UV_PROJECT_ENVIRONMENT := $(HOME)/goinfre/.cache/.venv
+export HF_HOME := $(HOME)/goinfre/.cache/huggingface
+export UV_CACHE_DIR := $(HOME)/goinfre/.cache/uv
+
 MAX_LENGTH=2000
 ACTION=index
 K=5

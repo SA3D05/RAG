@@ -1,18 +1,17 @@
-from pathlib import Path
 import sys
 from typing import Any
 from fire import Fire
 from tqdm import tqdm
 
-# from .generation import Model
+from .generation import Model
 from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
+from .utils import Utils
+from .recall import Recall
 from .models import (
     RagDataset,
     RagDatasetRecall,
-    Recall,
-    Utils,
     StudentSearchResults,
     StudentSearchResultsAndAnswer,
     UnansweredQuestion,
@@ -105,7 +104,7 @@ class Rag:
 
         content = Utils.get_pydantic_model(source_path, StudentSearchResults)
 
-        model = Model()  # type: ignore
+        model = Model()
         result: StudentSearchResultsAndAnswer = StudentSearchResultsAndAnswer(
             search_results=[], k=content.k
         )
