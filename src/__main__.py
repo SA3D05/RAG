@@ -21,12 +21,10 @@ from .models import (
 
 class Rag:
 
-    def index(
-        self, max_chunk_size: Any = 2000, raw_data_path: Any = "data/raw"
-    ):
+    def index(self, max_chunk_size: Any = 2000):
 
         max_chunk_size_value = Utils.get_valid_max_chunk_size(max_chunk_size)
-        path = Utils.get_path(raw_data_path)
+        path = Utils.get_path("data/raw")
         indexer = Indexer(path, max_chunk_size_value)
         indexer.index()
 
@@ -110,7 +108,7 @@ class Rag:
         )
         with tqdm(total=len(content.search_results), file=sys.stdout) as pbar:
             for search_result in content.search_results:
-                answer = model.generate(search_result)
+                answer = model.generate(search_result, pbar)
                 result.search_results.append(answer)
                 pbar.update(1)
 
@@ -142,7 +140,23 @@ class Rag:
 if __name__ == "__main__":
 
     try:
-        Fire(Rag)
+        if len(sys.argv) < 2:
+            Utils.write_err(
+                "Missing command. Use one of: index, search, "
+                "search_dataset, answer_dataset, evaluate."
+            )
+            sys.exit(1)
 
+        if sys.argv[1] not in [
+            "index",
+            "search",
+            "search_dataset",
+            "answer_dataset",
+            "evaluate",
+        ]:
+            Utils.write_err(f"Unknown command: {sys.argv[1]}")
+            sys.exit(1)
+
+        Fire(Rag)
     except KeyboardInterrupt:
         Utils.write_err("Exit program")

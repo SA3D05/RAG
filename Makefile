@@ -1,62 +1,8 @@
-
-export UV_PROJECT_ENVIRONMENT := $(HOME)/goinfre/.cache/.venv
-export HF_HOME := $(HOME)/goinfre/.cache/huggingface
-export UV_CACHE_DIR := $(HOME)/goinfre/.cache/uv
-
-MAX_LENGTH=2000
 ACTION=index
-K=5
 
-run: index search grademe
 
-test_grade: grade grademe
-
-index: install
-	@uv run python3 -m src index \
-	-max_chunk_size $(MAX_LENGTH)
-
-search: install
-	@echo "=========================== {SEARCH DOCS} ==========================="
-
-	@uv run python3 -m src search_dataset \
-	-dataset_path data/datasets/private/UnansweredQuestions/dataset_docs_private.json \
-	-k $(K) \
-	-save_directory data/output/
-
-	@echo "=========================== {SEARCH CODE} ==========================="
-
-	@uv run python3 -m src search_dataset \
-	-dataset_path data/datasets/private/UnansweredQuestions/dataset_code_private.json \
-	-k $(K) \
-	-save_directory data/output/
-
-grade:
-	@./moulinette evaluate_student_search_results \
-	data/output/dataset_docs_private.json \
-	data/datasets/private/AnsweredQuestions/dataset_docs_private.json \
-	--k $(K) \
-	--max_context_length $(MAX_LENGTH)
-	
-	@echo "=========================== {GRADE DOCS} ==========================="
-
-	@./moulinette evaluate_student_search_results \
-	data/output/dataset_code_private.json \
-	data/datasets/private/AnsweredQuestions/dataset_code_private.json \
-	--k $(K) \
-	--max_context_length $(MAX_LENGTH)
-
-	@echo "=========================== {GRADE CODE} ==========================="
-
-grademe:
-	@uv run python3 -m src evaluate \
-	data/output/dataset_docs_private.json \
-	data/datasets/private/AnsweredQuestions/dataset_docs_private.json
-	@echo "=========================== {GRADEME DOCS} ==========================="
-
-	@uv run python3 -m src evaluate \
-	data/output/dataset_code_private.json \
-	data/datasets/private/AnsweredQuestions/dataset_code_private.json
-	@echo "=========================== {GRADEME CODE} ==========================="
+run: install
+	uv run python3 -m src $(ACTION)
 
 install:
 	uv sync
