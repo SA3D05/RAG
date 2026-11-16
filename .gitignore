@@ -1,11 +1,7 @@
-en.subject.pdf
 __pycache__
 .venv
 .mypy_cache
 data
-result.md
 moulinette
-setuprag.sh
 .vscode
 *.log
-*test*

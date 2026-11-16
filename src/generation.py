@@ -89,3 +89,48 @@ class Model:
             retrieved_sources=search_result.retrieved_sources,
             answer=generated_text,
         )
+
+    def generate_one(
+        self, search_result: list[MinimalSource], question:str
+    ) -> MinimalAnswer:
+        context = "\n".join(
+            [self.__get_chunk_str(i) for i in search_result]
+        )
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "system", "content": f"Context:\n{context}"},
+            {"role": "user", "content": question},
+        ]
+
+        prompt = self.tokenizer.apply_chat_template(
+            messages,
+            add_generation_prompt=True,
+            enable_thinking=False,
+            return_tensors="pt",
+            return_dict=True,
+        )
+        input_ids = prompt["input_ids"]
+        if input_ids.shape[1] > self.model.config.max_position_embeddings:
+            Utils.write_err(
+                "Input exceeds the model's maximum context length: "
+                f"{input_ids.shape[1]} tokens provided, but the limit is "
+                f"{self.model.config.max_position_embeddings}."
+            )
+            sys.exit(1)
+
+        attention_mask = prompt["attention_mask"]
+
+        output_ids = self.model.generate(
+            input_ids,
+            attention_mask=attention_mask,
+            max_new_tokens=512,
+        )
+
+        input_length = input_ids.shape[1]
+        new_tokens = output_ids[0][input_length:]
+
+        generated_text = self.tokenizer.decode(
+            new_tokens, skip_special_tokens=True
+        )
+
+        return generated_text

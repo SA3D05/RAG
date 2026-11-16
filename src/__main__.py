@@ -44,6 +44,18 @@ class Rag:
 
         return result
 
+    def answer(self, query: Any, k: Any):
+        k_value = Utils.get_valid_k_value(k)
+
+        retrieval = Retrieval()
+        content = retrieval.search(str(query), k_value, DocumentType.DOCS)
+
+        model = Model()
+        
+        answer = model.generate_one(content, query)
+
+        return answer
+
     def search_dataset(
         self, dataset_path: Any, k: Any, save_directory: Any
     ) -> None:
@@ -150,9 +162,10 @@ if __name__ == "__main__":
         if sys.argv[1] not in [
             "index",
             "search",
+            "answer"
+            "evaluate",
             "search_dataset",
             "answer_dataset",
-            "evaluate",
         ]:
             Utils.write_err(f"Unknown command: {sys.argv[1]}")
             sys.exit(1)
