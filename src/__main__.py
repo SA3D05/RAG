@@ -4,7 +4,6 @@ from fire import Fire
 from tqdm import tqdm
 
 from .generation import Model
-from .enums import DocumentType
 from .search import Retrieval
 from .index import Indexer
 from .utils import Utils
@@ -34,9 +33,7 @@ class Rag:
         retrieval = Retrieval()
         result = [
             result.model_dump_json()
-            for result in retrieval.search(
-                str(query), k_value, DocumentType.DOCS
-            )
+            for result in retrieval.search(str(query), k_value)
         ]
 
         if not result:
@@ -48,10 +45,10 @@ class Rag:
         k_value = Utils.get_valid_k_value(k)
 
         retrieval = Retrieval()
-        content = retrieval.search(str(query), k_value, DocumentType.DOCS)
+        content = retrieval.search(str(query), k_value)
 
         model = Model()
-        
+
         answer = model.generate_one(content, query)
 
         return answer
@@ -83,15 +80,7 @@ class Rag:
                 if not isinstance(quest, UnansweredQuestion):
                     continue
 
-                if "code" in file_path.name:
-                    sources = retrieval.search(
-                        quest.question, k_value, DocumentType.CODE
-                    )
-
-                else:
-                    sources = retrieval.search(
-                        quest.question, k_value, DocumentType.DOCS
-                    )
+                sources = retrieval.search(quest.question, k_value)
 
                 results.search_results.append(
                     MinimalSearchResults(
@@ -162,7 +151,7 @@ if __name__ == "__main__":
         if sys.argv[1] not in [
             "index",
             "search",
-            "answer"
+            "answer",
             "evaluate",
             "search_dataset",
             "answer_dataset",

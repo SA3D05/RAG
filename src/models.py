@@ -48,21 +48,17 @@ class StudentSearchResultsAndAnswer(BaseModel):
 
 
 class AvrageDocumentLengthCache(BaseModel):
-    docs_avgdl: float
-    code_avgdl: float
+    avgdl: float
 
 
 class ChunksCache(BaseModel):
 
-    docs_chunks: list[MinimalSource]
-    code_chunks: list[MinimalSource]
+    chunks: list[MinimalSource]
 
 
 class InverseDocumentFrequencyCache(BaseModel):
-    docs_idf: dict[str, float]
-    code_idf: dict[str, float]
+    idf: dict[str, float]
 
 
 class TermFrequencyCache(BaseModel):
-    docs_tf: dict[str, dict[str, int]]
-    code_tf: dict[str, dict[str, int]]
+    tf: dict[str, dict[str, int]]

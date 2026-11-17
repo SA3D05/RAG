@@ -69,26 +69,25 @@ class Utils:
     def get_valid_max_chunk_size(max_chunk_size: Any) -> int:
         try:
 
-            min_size, overlap_size, max_size = (size.value for size in Statics)
+            min_size, max_size = (
+                Statics.MIN_CHUNK_SIZE.value,
+                Statics.GLOBAL_MAX_CHUNK_SIZE.value,
+            )
 
             value = int(max_chunk_size)
 
             if value > max_size:
                 raise ValueError(f"'max_chunk_size' greater than {max_size}")
 
-            if value <= overlap_size:
+            elif value < min_size:
                 raise ValueError(
-                    f"'max_chunk_size' cannot be less than or equal to overlap size {overlap_size}"
-                )
-
-            elif value <= min_size:
-                raise ValueError(
-                    f"'max_chunk_size' cannot be less than or equal to min_chunk_size size {min_size}"
+                    "'max_chunk_size' cannot be less than "
+                    + f"min_chunk_size size {min_size}",
                 )
 
             return value
 
-        except (TypeError, ValueError) as e:
+        except ValueError as e:
             Utils.write_err(f"Error: {e}")
             sys.exit(1)
 

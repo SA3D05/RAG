@@ -1,14 +1,9 @@
-from enum import Enum, auto
-
-
-class DocumentType(Enum):
-    CODE = auto()
-    DOCS = auto()
+from enum import Enum
 
 
 class Statics(Enum):
-    CODE_MIN_CHUNK_SIZE = 500
-    DOCS_OVERLAP_SIZE = 300
+    MIN_CHUNK_SIZE = 500
+    OVERLAP_SIZE = 300
     GLOBAL_MAX_CHUNK_SIZE = 2000
 
 

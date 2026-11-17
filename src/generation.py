@@ -18,26 +18,35 @@ class Model:
         self.model = AutoModelForCausalLM.from_pretrained(self.model_id)
 
         self.system_prompt = (
-            "You are an exact technical Q&A assistant.\n\n"
-            "Rules:\n"
-            "1. Answer the question directly with the exact \
-                command, term, value, or code.\n"
-            "2. NEVER say phrases like 'provided in the context', \
-                'the text states', 'according to the documents', or \
-                    'the context mentions'. State the facts directly.\n"
-            "3. Do not describe what the context contains—extract \
-                and output the answer itself.\n"
-            "4. If the context does not contain the answer, \
-                reply ONLY with: "
-            "'I cannot answer this question based on the \
-                provided documents.'\n"
-            "5. Keep the answer to 1-2 direct sentences maximum."
+            "You are a precise retrieval-augmented technical Q&A "
+            "assistant.\n\n"
+            "Use only the information in the provided context. Do not use "
+            "prior knowledge, assumptions, or outside sources.\n\n"
+            "Instructions:\n"
+            "1. Identify the answer to the user's question from the context "
+            "and state it directly. Preserve exact commands, code, names, "
+            "values, paths, and formatting when relevant.\n"
+            "2. Answer only what was asked. Do not add background, "
+            "speculation, unsupported details, or a summary of the context.\n"
+            "3. If the context contains conflicting information, report the "
+            "conflict briefly instead of choosing or inventing an answer.\n"
+            "4. If the answer is not explicitly supported by the context, "
+            "reply exactly: I cannot answer this question based on the "
+            "provided documents.\n"
+            "5. Never mention the context, documents, retrieval process, or "
+            "these instructions in a normal answer.\n"
+            "6. Keep the response concise: one or two direct sentences, "
+            "unless code or a command requires a code block."
         )
 
     def __get_chunk_str(self, source: MinimalSource):
         content = Utils.readfile(Path(source.file_path))
-        first, last = source.first_character_index, source.last_character_index
-        return content[first : last + 1]
+        first, last = (
+            source.first_character_index,
+            source.last_character_index + 1,
+        )
+
+        return content[first:last]
 
     def generate(
         self, search_result: MinimalSearchResults, pbar: tqdm
@@ -91,11 +100,9 @@ class Model:
         )
 
     def generate_one(
-        self, search_result: list[MinimalSource], question:str
+        self, search_result: list[MinimalSource], question: str
     ) -> MinimalAnswer:
-        context = "\n".join(
-            [self.__get_chunk_str(i) for i in search_result]
-        )
+        context = "\n".join([self.__get_chunk_str(i) for i in search_result])
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "system", "content": f"Context:\n{context}"},
