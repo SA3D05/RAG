@@ -136,7 +136,7 @@ class Indexer:
             )
             chunk_content = file_content[first:last]
 
-            tokens = Utils.tokenize(chunk_content + " " + current_path)
+            tokens = Utils.tokenize(chunk_content + " " + Path(current_path).name)
             tokens_frequency = self.__get_tokens_frequency(tokens)
 
             chunk.tokens_len = len(tokens)

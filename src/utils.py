@@ -94,6 +94,11 @@ class Utils:
     @staticmethod
     def get_valid_k_value(k: Any) -> int:
         try:
+            if isinstance(k, str) and not k.isdigit():
+                raise ValueError()
+
+            if not isinstance(k, int):
+                raise ValueError()
 
             k_value = int(k)
             if k_value <= 0:
@@ -102,7 +107,7 @@ class Utils:
 
         except (TypeError, ValueError):
             Utils.write_err(
-                f"Error: 'k' value must be a valid positive integer '{k}'",
+                f"Error: 'k' must be a positive integer; received {k}",
             )
             sys.exit(1)
 

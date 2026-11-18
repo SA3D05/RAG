@@ -101,8 +101,8 @@ class Retrieval:
         if avgdl <= 0:
             return 0.0
 
-        k1 = 1.5
-        b = 0.75
+        k1 = 0.8
+        b = 0.5
 
         numerator = tf * (k1 + 1.0)
         denominator = tf + k1 * (1.0 - b + b * (doc_len / avgdl))
