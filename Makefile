@@ -12,10 +12,7 @@ debug: install
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
-	rm -rf .mypy_cache \
-	data/output/* \
-	data/processed/*
-	
+	rm -rf .mypy_cache
 
 lint: install
 	uv run mypy -m src --warn-return-any \
