@@ -11,14 +11,18 @@ from .models import (
 
 
 class Retrieval:
+    """Load persisted indexes and retrieve relevant document chunks."""
+
     def __init__(self) -> None:
+        """Load all persisted retrieval indexes."""
         self.chunks: ChunksCache
         self.term_frequency: TermFrequencyCache
         self.inverse_document_frequency: InverseDocumentFrequencyCache
         self.avrage_document_length: AvrageDocumentLengthCache
         self.__get_parsed_attrs()
 
-    def __get_parsed_attrs(self):
+    def __get_parsed_attrs(self) -> None:
+        """Load each persisted index into its corresponding attribute."""
 
         for attr, path in zip(
             [
@@ -45,6 +49,15 @@ class Retrieval:
             )
 
     def search(self, query: str, k: int) -> list[MinimalSource]:
+        """Return the highest-scoring chunks for a query.
+
+        Args:
+            query: User query to tokenize and score.
+            k: Maximum number of chunks to return.
+
+        Returns:
+            Relevant document chunks ordered by descending score.
+        """
 
         query_tokens = Utils.tokenize(query)
         scores = {}
@@ -98,6 +111,17 @@ class Retrieval:
         doc_len: int,
         avgdl: float,
     ) -> float:
+        """Calculate a BM25-style score for one chunk.
+
+        Args:
+            tf: Term frequency in the chunk.
+            idf: Inverse document frequency for the term.
+            doc_len: Number of tokens in the chunk.
+            avgdl: Average document length across chunks.
+
+        Returns:
+            The calculated relevance score.
+        """
         if avgdl <= 0:
             return 0.0
 

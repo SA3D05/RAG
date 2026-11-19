@@ -19,15 +19,30 @@ from .models import (
 
 
 class Rag:
+    """Expose the retrieval-augmented generation command-line operations."""
 
-    def index(self, max_chunk_size: Any = 2000):
+    def index(self, max_chunk_size: Any = 2000) -> None:
+        """Create search indexes for the configured raw documents.
+
+        Args:
+            max_chunk_size: Maximum number of characters in a chunk.
+        """
 
         max_chunk_size_value = Utils.get_valid_max_chunk_size(max_chunk_size)
         path = Utils.get_path("data/raw")
         indexer = Indexer(path, max_chunk_size_value)
         indexer.index()
 
-    def search(self, query: Any, k: Any):
+    def search(self, query: Any, k: Any) -> list[str]:
+        """Retrieve the most relevant document chunks for a query.
+
+        Args:
+            query: User search query.
+            k: Number of results to return.
+
+        Returns:
+            Serialized search results.
+        """
         k_value = Utils.get_valid_k_value(k)
 
         retrieval = Retrieval()
@@ -41,7 +56,16 @@ class Rag:
 
         return result
 
-    def answer(self, query: Any, k: Any):
+    def answer(self, query: Any, k: Any) -> str:
+        """Generate an answer using the chunks retrieved for a query.
+
+        Args:
+            query: User question.
+            k: Number of chunks to retrieve.
+
+        Returns:
+            A generated answer.
+        """
         k_value = Utils.get_valid_k_value(k)
 
         retrieval = Retrieval()
@@ -56,6 +80,13 @@ class Rag:
     def search_dataset(
         self, dataset_path: Any, k: Any, save_directory: Any
     ) -> None:
+        """Retrieve sources for every unanswered question in a dataset.
+
+        Args:
+            dataset_path: Path to the dataset JSON file.
+            k: Number of chunks to retrieve per question.
+            save_directory: Directory in which to save the results.
+        """
 
         k_value = Utils.get_valid_k_value(k)
 
@@ -97,7 +128,13 @@ class Rag:
 
     def answer_dataset(
         self, student_search_results_path: Any, save_directory: Any
-    ):
+    ) -> None:
+        """Generate answers for a previously retrieved search-results file.
+
+        Args:
+            student_search_results_path: Path to search results JSON.
+            save_directory: Directory in which to save the answers.
+        """
         source_path = Utils.get_path(student_search_results_path)
         output_path = Utils.get_path(save_directory, is_dir=True)
 
@@ -118,7 +155,18 @@ class Rag:
             result.model_dump_json(indent=4),
         )
 
-    def evaluate(self, student_search_results_path: Any, dataset_path: Any):
+    def evaluate(
+        self, student_search_results_path: Any, dataset_path: Any
+    ) -> dict[str, float]:
+        """Evaluate retrieval recall against a ground-truth dataset.
+
+        Args:
+            student_search_results_path: Path to retrieved search results.
+            dataset_path: Path to the ground-truth dataset.
+
+        Returns:
+            Recall values.
+        """
 
         results_path = Utils.get_path(student_search_results_path)
         ground_truth_path = Utils.get_path(dataset_path)

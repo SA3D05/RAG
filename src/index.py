@@ -17,8 +17,15 @@ from .models import (
 
 
 class Indexer:
+    """Create chunks and persisted term indexes from raw documents."""
 
     def __init__(self, raw_data_path: Path, max_chunk_size: int) -> None:
+        """Initialize an indexer for a raw-data directory.
+
+        Args:
+            raw_data_path: Directory containing source documents.
+            max_chunk_size: Maximum chunk size in characters.
+        """
         self.raw_data_path = raw_data_path
         self.max_chunk_size = max_chunk_size
         self.min_chunk_size = Statics.MIN_CHUNK_SIZE.value
@@ -33,6 +40,7 @@ class Indexer:
         self.__set_target_paths()
 
     def index(self) -> None:
+        """Chunk source files, calculate indexes, and save the results."""
 
         self.__check_files()
 
@@ -54,14 +62,16 @@ class Indexer:
         with tqdm(total=4, file=sys.stdout) as pbar:
             self.__save_index(pbar)
 
-    def __set_target_paths(self):
+    def __set_target_paths(self) -> None:
+        """Collect supported source files below the raw-data directory."""
 
         for file_pattern in self.target_files_types:
             self.target_paths.extend(
                 [p for p in self.raw_data_path.rglob("*." + file_pattern)]
             )
 
-    def __check_files(self):
+    def __check_files(self) -> None:
+        """Validate input files and initialize output artifact paths."""
         file_path = ""
 
         if not self.raw_data_path.is_dir():
@@ -84,6 +94,14 @@ class Indexer:
             sys.exit()
 
     def __get_tokens_frequency(self, tokens: list[str]) -> dict[str, int]:
+        """Count each distinct token in a chunk.
+
+        Args:
+            tokens: Tokens extracted from a chunk.
+
+        Returns:
+            A mapping from token to its frequency.
+        """
         tokens_frequency: dict[str, int] = {}
         for token in tokens:
             if token in tokens_frequency:
@@ -97,6 +115,13 @@ class Indexer:
         chunk_tokens_frequency: dict[str, int],
         term_frequency: dict[str, dict[str, int]],
     ) -> None:
+        """Add one chunk's frequencies to the term-frequency index.
+
+        Args:
+            chunk_idx: Numeric identifier of the chunk.
+            chunk_tokens_frequency: Frequencies for the current chunk.
+            term_frequency: Index to update.
+        """
 
         for token, frequency in chunk_tokens_frequency.items():
 
@@ -109,13 +134,25 @@ class Indexer:
         inverse_document_frequency: dict[str, float],
         chunks_len: int,
     ) -> None:
+        """Calculate inverse document frequency for every indexed token.
+
+        Args:
+            term_frequency: Term-frequency index.
+            inverse_document_frequency: Index to update.
+            chunks_len: Number of indexed chunks.
+        """
 
         for token, token_frequency in term_frequency.items():
             inverse_document_frequency[token] = math.log2(
                 chunks_len / len(token_frequency)
             )
 
-    def __set_index_from_chunks(self, pbar=None) -> None:
+    def __set_index_from_chunks(self, pbar: tqdm | None = None) -> None:
+        """Build term frequency, IDF, and average-length indexes.
+
+        Args:
+            pbar: Optional progress bar to update while indexing.
+        """
 
         term_frequency: dict[str, dict[str, int]] = {}
         inverse_document_frequency: dict[str, float] = {}
@@ -162,7 +199,12 @@ class Indexer:
             }
         )
 
-    def __save_index(self, pbar: tqdm | None = None):
+    def __save_index(self, pbar: tqdm | None = None) -> None:
+        """Serialize all index artifacts to their configured paths.
+
+        Args:
+            pbar: Optional progress bar to update after each artifact.
+        """
 
         avgdl = AvrageDocumentLengthCache(avgdl=self.index_result["avgdl"])
         tf = TermFrequencyCache(tf=self.index_result["tf"])
@@ -178,7 +220,16 @@ class Indexer:
             if pbar is not None:
                 pbar.update(1)
 
-    def __chunk_docs(self, content, path):
+    def __chunk_docs(self, content: str, path: Path) -> list[MinimalSource]:
+        """Split non-code content into overlapping fixed-size chunks.
+
+        Args:
+            content: Source document content.
+            path: Source document path.
+
+        Returns:
+            Chunks covering the document content.
+        """
         chunks_objs: list[MinimalSource] = []
 
         start_idx = 0
@@ -200,11 +251,24 @@ class Indexer:
 
         return chunks_objs
 
-    def __chunk_code(self, tree: Tree, byte_map, path) -> list[MinimalSource]:
+    def __chunk_code(
+        self, tree: Tree, byte_map: dict[int, int], path: Path
+    ) -> list[MinimalSource]:
+        """Split a parsed Python tree into syntax-aware chunks.
+
+        Args:
+            tree: Parsed Python syntax tree.
+            byte_map: Mapping from byte offsets to character offsets.
+            path: Source document path.
+
+        Returns:
+            Chunks covering the parsed source.
+        """
         chunks_objs: list[MinimalSource] = []
         buffer_start_byte = -1
 
-        def flush_buffer(end_byte: int):
+        def flush_buffer(end_byte: int) -> None:
+            """Flush the buffered syntax nodes into one chunk."""
             nonlocal buffer_start_byte
             if buffer_start_byte != -1:
                 chunks_objs.append(
@@ -217,7 +281,8 @@ class Indexer:
                 )
                 buffer_start_byte = -1
 
-        def rec(root: Node):
+        def rec(root: Node) -> None:
+            """Recursively collect chunks from a syntax-tree node."""
             nonlocal buffer_start_byte
             for child in root.children:
                 byte_range = child.end_byte - child.start_byte
@@ -254,8 +319,16 @@ class Indexer:
 
         return chunks_objs
 
-    def __get_byte_map(self, content: str):
-        result = {}
+    def __get_byte_map(self, content: str) -> dict[int, int]:
+        """Map UTF-8 byte offsets to Python string character offsets.
+
+        Args:
+            content: Source content.
+
+        Returns:
+            A byte-offset to character-offset mapping.
+        """
+        result: dict[int, int] = {}
         byte_idx = 0
         for character_idx, character in enumerate(content):
             result[byte_idx] = character_idx
@@ -264,6 +337,11 @@ class Indexer:
         return result
 
     def __chunk(self, pbar: tqdm | None = None) -> None:
+        """Chunk every supported target file.
+
+        Args:
+            pbar: Optional progress bar to update per source file.
+        """
 
         PY_LANGUAGE = Language(tree_sitter_python.language())
         parser = Parser(PY_LANGUAGE)

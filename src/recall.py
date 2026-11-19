@@ -5,12 +5,24 @@ from .utils import Utils
 
 
 class Recall:
+    """Calculate source-retrieval recall."""
+
     def __init__(self) -> None:
+        """Initialize the minimum intersection-over-union threshold."""
         self.min_iou = 0.05
 
     def __get_intersection(
         self, truth_source: MinimalSource, result_source: MinimalSource
-    ):
+    ) -> int:
+        """Calculate the overlapping character span of two sources.
+
+        Args:
+            truth_source: Ground-truth source range.
+            result_source: Retrieved source range.
+
+        Returns:
+            The intersection length.
+        """
 
         truth_start = truth_source.first_character_index
         truth_end = truth_source.last_character_index
@@ -22,7 +34,16 @@ class Recall:
 
     def __get_union(
         self, truth_source: MinimalSource, result_source: MinimalSource
-    ):
+    ) -> int:
+        """Calculate the union character span of two sources.
+
+        Args:
+            truth_source: Ground-truth source range.
+            result_source: Retrieved source range.
+
+        Returns:
+            The union length.
+        """
 
         truth_start = truth_source.first_character_index
         truth_end = truth_source.last_character_index
@@ -35,6 +56,15 @@ class Recall:
     def __check_iou(
         self, truth_source: MinimalSource, result_source: MinimalSource
     ) -> bool:
+        """Check whether two source ranges meet the IoU threshold.
+
+        Args:
+            truth_source: Ground-truth source range.
+            result_source: Retrieved source range.
+
+        Returns:
+            Whether the ranges overlap sufficiently.
+        """
 
         intersection = self.__get_intersection(truth_source, result_source)
         union = self.__get_union(truth_source, result_source)
@@ -51,6 +81,15 @@ class Recall:
         truth_source: MinimalSource,
         result_source: list[MinimalSource],
     ) -> bool:
+        """Check whether a matching retrieved source exists.
+
+        Args:
+            truth_source: Ground-truth source range.
+            result_source: Retrieved source ranges.
+
+        Returns:
+            Whether any retrieved source matches the ground truth.
+        """
         for source in result_source:
             if source.file_path != truth_source.file_path:
                 continue
@@ -62,7 +101,16 @@ class Recall:
         self,
         results: list[MinimalSearchResults],
         ground_truth: dict[str, list[MinimalSource]],
-    ) -> dict:
+    ) -> dict[int, float]:
+        """Compute recall at 1, 3, 5, and 10 retrieved sources.
+
+        Args:
+            results: Retrieved results to evaluate.
+            ground_truth: Ground-truth sources keyed by question ID.
+
+        Returns:
+            Recall values.
+        """
         recalls = {
             1: 0.0,
             3: 0.0,
@@ -74,7 +122,7 @@ class Recall:
             question_id = question_result.question_id
             if question_id not in ground_truth:
                 print(f"The question_id {question_id} not fount!")
-                sys.exit()
+                sys.exit(1)
 
             truth_sources = ground_truth[question_id]
 
@@ -82,7 +130,7 @@ class Recall:
                 Utils.write_err(
                     f"No object found for question_id {question_id}"
                 )
-                sys.exit()
+                sys.exit(1)
 
             if not truth_sources:
                 continue

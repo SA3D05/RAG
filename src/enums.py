@@ -2,12 +2,16 @@ from enum import Enum
 
 
 class Statics(Enum):
+    """Define chunking limits and overlap constants."""
+
     MIN_CHUNK_SIZE = 500
     OVERLAP_SIZE = 300
     GLOBAL_MAX_CHUNK_SIZE = 2000
 
 
 class PathInfo(Enum):
+    """Define paths for persisted indexing artifacts."""
+
 
     CHUNKS_PATH = "data/processed/chunks.json"
     TF_PATH = "data/processed/term_frequency.json"

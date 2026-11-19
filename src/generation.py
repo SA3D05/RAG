@@ -10,7 +10,10 @@ from .utils import Utils
 
 
 class Model:
+    """Generate answers from retrieved document context."""
+
     def __init__(self) -> None:
+        """Load the tokenizer, language model, and generation prompt."""
         self.model_id = "Qwen/Qwen3-0.6B"
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_id)
@@ -39,7 +42,15 @@ class Model:
             "unless code or a command requires a code block."
         )
 
-    def __get_chunk_str(self, source: MinimalSource):
+    def __get_chunk_str(self, source: MinimalSource) -> str:
+        """Read the character range represented by a source chunk.
+
+        Args:
+            source: Source metadata identifying a document range.
+
+        Returns:
+            The chunk text.
+        """
         content = Utils.readfile(Path(source.file_path))
         first, last = (
             source.first_character_index,
@@ -51,6 +62,15 @@ class Model:
     def generate(
         self, search_result: MinimalSearchResults, pbar: tqdm
     ) -> MinimalAnswer:
+        """Generate an answer for one retrieved search result.
+
+        Args:
+            search_result: Question and retrieved source metadata.
+            pbar: Progress bar to close if generation cannot proceed.
+
+        Returns:
+            The search result with a generated answer.
+        """
         context = "\n".join(
             [self.__get_chunk_str(i) for i in search_result.retrieved_sources]
         )
@@ -101,7 +121,16 @@ class Model:
 
     def generate_one(
         self, search_result: list[MinimalSource], question: str
-    ) -> MinimalAnswer:
+    ) -> str:
+        """Generate an answer for a question and retrieved sources.
+
+        Args:
+            search_result: Retrieved source metadata.
+            question: User question to answer.
+
+        Returns:
+            The generated answer.
+        """
         context = "\n".join([self.__get_chunk_str(i) for i in search_result])
         messages = [
             {"role": "system", "content": self.system_prompt},

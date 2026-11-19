@@ -10,9 +10,18 @@ from .enums import Statics
 
 
 class Utils:
+    """Provide shared file, validation, serialization, and logging helpers."""
 
     @staticmethod
     def tokenize(text: str) -> list[str]:
+        """Tokenize text into normalized identifier-like terms.
+
+        Args:
+            text: Text to tokenize.
+
+        Returns:
+            Lowercase tokens longer than one character.
+        """
         if not text:
             return []
 
@@ -36,6 +45,17 @@ class Utils:
         create: bool = False,
         pbar: tqdm | None = None,
     ) -> Path:
+        """Convert a value to a path and optionally create it.
+
+        Args:
+            path: Path-like value to convert.
+            is_dir: Whether ``path`` represents a directory.
+            create: Whether to create the requested path.
+            pbar: Optional progress bar to close on failure.
+
+        Returns:
+            The converted path.
+        """
         try:
             path = Path(str(path))
             if create and is_dir:
@@ -58,15 +78,33 @@ class Utils:
             sys.exit(1)
 
     @staticmethod
-    def write_log(msg: str):
+    def write_log(msg: str) -> None:
+        """Write an informational message to standard output.
+
+        Args:
+            msg: Message to write.
+        """
         print(msg, file=sys.stdout)
 
     @staticmethod
-    def write_err(msg: str):
+    def write_err(msg: str) -> None:
+        """Write an error message to standard error.
+
+        Args:
+            msg: Message to write.
+        """
         print(msg, file=sys.stderr)
 
     @staticmethod
     def get_valid_max_chunk_size(max_chunk_size: Any) -> int:
+        """Validate and normalize a requested maximum chunk size.
+
+        Args:
+            max_chunk_size: Value supplied by the caller.
+
+        Returns:
+            A validated chunk size.
+        """
         try:
 
             min_size, max_size = (
@@ -93,6 +131,14 @@ class Utils:
 
     @staticmethod
     def get_valid_k_value(k: Any) -> int:
+        """Validate and normalize a positive result count.
+
+        Args:
+            k: Value supplied by the caller.
+
+        Returns:
+            A positive integer result count.
+        """
         try:
             if isinstance(k, str) and not k.isdigit():
                 raise ValueError()
@@ -113,6 +159,15 @@ class Utils:
 
     @staticmethod
     def readfile(file_path: Path, pbar: tqdm | None = None) -> str:
+        """Read a UTF-8 text file, reporting errors consistently.
+
+        Args:
+            file_path: File to read.
+            pbar: Optional progress bar to close on failure.
+
+        Returns:
+            The file contents.
+        """
         try:
             with open(file_path) as f:
                 return f.read()
@@ -132,6 +187,13 @@ class Utils:
     def writefile(
         file_path: str, content: str, pbar: tqdm | None = None
     ) -> None:
+        """Write text content to a file, creating parent directories.
+
+        Args:
+            file_path: Destination file path.
+            content: Text to write.
+            pbar: Optional progress bar to close on failure.
+        """
         try:
             path = Utils.get_path(file_path, create=True, pbar=pbar)
 
@@ -152,6 +214,15 @@ class Utils:
 
     @staticmethod
     def get_pydantic_model(file_path: Path, obj: Any) -> Any:
+        """Parse a JSON file into the requested Pydantic model.
+
+        Args:
+            file_path: JSON file to parse.
+            obj: Pydantic model class used for validation.
+
+        Returns:
+            The validated model instance.
+        """
         content = Utils.readfile(file_path)
         try:
             return obj.model_validate_json(content)
